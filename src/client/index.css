@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+/* Game specific styles */
+.game-canvas {
+  max-width: 100%;
+  height: auto;
+  touch-action: manipulation;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .game-canvas {
+    width: 100%;
+    max-width: calc(100vw - 2rem);
+    height: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-canvas {
+    width: 100%;
+    max-width: calc(100vw - 1rem);
+    height: auto;
+  }
+}
+
+/* Prevent zoom on double tap */
+* {
+  touch-action: manipulation;
+}
+
+/* Game button styles */
+.game-button {
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.game-button:active {
+  transform: scale(0.95);
+}
+
+.game-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

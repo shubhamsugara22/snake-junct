@@ -102,37 +102,57 @@ router.post('/api/save-score', async (req, res): Promise<void> => {
   }
 
   try {
-    const { score } = req.body;
+    const { score, level } = req.body as SaveScoreRequest;
+    
+    if (typeof score !== 'number' || !level) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Invalid score or level',
+      });
+      return;
+    }
+
     const username = await reddit.getCurrentUsername();
     const userKey = `user:${username}:highscore`;
+    const userLevelKey = `user:${username}:level:${level}:highscore`;
     const globalKey = 'global:highscore';
+    const leaderboardKey = 'leaderboard:scores';
     
     // Get current high scores
-    const [currentUserScore, currentGlobalScore] = await Promise.all([
+    const [currentUserScore, currentLevelScore, currentGlobalScore] = await Promise.all([
       redis.get(userKey),
+      redis.get(userLevelKey),
       redis.get(globalKey),
     ]);
 
     const userHighScore = currentUserScore ? parseInt(currentUserScore) : 0;
+    const levelHighScore = currentLevelScore ? parseInt(currentLevelScore) : 0;
     const globalHighScore = currentGlobalScore ? parseInt(currentGlobalScore) : 0;
 
     // Update high scores if new score is higher
     const newHighScore = Math.max(userHighScore, score);
+    const newLevelHighScore = Math.max(levelHighScore, score);
     const newGlobalHighScore = Math.max(globalHighScore, score);
 
+    // Save all scores
     await Promise.all([
       redis.set(userKey, newHighScore.toString()),
+      redis.set(userLevelKey, newLevelHighScore.toString()),
       redis.set(globalKey, newGlobalHighScore.toString()),
-      // Store individual game record for history
-      redis.set(`game:${username}:${Date.now()}`, score.toString()),
+      // Store in sorted set for leaderboard (score as value, username:timestamp as member)
+      redis.zAdd(leaderboardKey, { member: `${username}:${Date.now()}`, score }),
+      // Store individual game record for history with level info
+      redis.set(`game:${username}:${Date.now()}`, JSON.stringify({ score, level, timestamp: Date.now() })),
     ]);
+
+    console.log(`Score saved for ${username}: ${score} (level: ${level}), new high score: ${newHighScore}`);
 
     res.json({
       type: 'score',
       postId,
       score,
       highScore: newHighScore,
-    });
+    } as GameScoreResponse);
   } catch (error) {
     console.error('Error saving score:', error);
     res.status(500).json({
@@ -185,9 +205,25 @@ router.get('/api/leaderboard', async (_req, res): Promise<void> => {
   }
 
   try {
-    // For now, return empty leaderboard - in a real implementation
-    // you would use a proper leaderboard structure
+    const leaderboardKey = 'leaderboard:scores';
+    
+    // Get top 10 scores from sorted set (highest to lowest)
+    const topScores = await redis.zRange(leaderboardKey, 0, 9, { by: 'rank', reverse: true });
+    
     const entries: Array<{ username: string; score: number; timestamp: number }> = [];
+    
+    for (const item of topScores) {
+      const [username, timestampStr] = item.member.split(':');
+      const timestamp = parseInt(timestampStr || '0');
+      
+      entries.push({
+        username: username || 'Unknown',
+        score: item.score,
+        timestamp,
+      });
+    }
+
+    console.log(`Leaderboard fetched: ${entries.length} entries`);
 
     res.json({
       entries,

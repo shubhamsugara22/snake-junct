@@ -9,6 +9,14 @@
   margin: 0 auto;
 }
 
+/* Desktop optimizations */
+@media (min-width: 1024px) {
+  .game-canvas {
+    max-width: 800px;
+    height: auto;
+  }
+}
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .game-canvas {
@@ -44,4 +52,10 @@
 .game-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Pixel font styles for intro */
+.pixel-font {
+  font-family: 'Courier New', monospace;
+  text-shadow: 2px 2px 0px rgba(0,0,0,0.5);
 }

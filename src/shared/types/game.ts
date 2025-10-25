@@ -12,21 +12,45 @@ export type Snake = {
   speed: number;
   length: number;
   width: number;
+  color?: string;
+  pattern?: 'normal' | 'spinning';
+  rotation?: number;
 };
 
 export type Player = {
   position: Position;
   velocity: number;
   isAlive: boolean;
+  skin?: string;
+};
+
+export type PowerUp = {
+  id: string;
+  type: 'shield';
+  position: Position;
+  collected: boolean;
+};
+
+export type Obstacle = {
+  id: string;
+  type: 'pillar';
+  position: Position;
+  width: number;
+  height: number;
+  passed?: boolean;
 };
 
 export type GameState = {
   player: Player;
   snakes: Snake[];
+  obstacles: Obstacle[];
+  powerUps: PowerUp[];
   score: number;
   level: GameLevel;
   isGameOver: boolean;
   isPlaying: boolean;
+  shieldActive: boolean;
+  shieldEndTime: number;
 };
 
 export type GameConfig = {
@@ -38,4 +62,5 @@ export type GameConfig = {
   jumpForce: number;
   levelSpeeds: Record<GameLevel, number>;
   snakeCount: Record<GameLevel, number>;
+  obstacleCount: Record<GameLevel, number>;
 };

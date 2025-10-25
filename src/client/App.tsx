@@ -5,6 +5,8 @@ import { useGameScore } from './hooks/useGameScore';
 import { Game } from './components/Game';
 import { Leaderboard } from './components/Leaderboard';
 import { GameInstructions } from './components/GameInstructions';
+import { GameIntro } from './components/GameIntro';
+import { PowerUpsPreview } from './components/PowerUpsPreview';
 import { GameLevel } from '../shared/types/game';
 
 export const App = () => {
@@ -12,6 +14,8 @@ export const App = () => {
   const { highScore, saveScore, getHighScore } = useGameScore();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showPowerUps, setShowPowerUps] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     getHighScore();
@@ -34,18 +38,36 @@ export const App = () => {
       <div className="w-full max-w-2xl mx-auto">
         <div className="text-center mb-2 sm:mb-4 w-full">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-2">
-            <div className="flex gap-1 sm:gap-2 order-2 sm:order-1">
+            <div className="flex flex-wrap gap-1 sm:gap-2 order-2 sm:order-1 justify-center sm:justify-start">
               <button
                 onClick={() => setShowLeaderboard(true)}
-                className="px-2 py-1 sm:px-3 sm:py-1 bg-blue-500 text-white rounded text-xs sm:text-sm hover:bg-blue-600"
+                className="group relative px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg text-xs sm:text-sm hover:shadow-blue-500/50 transform hover:scale-105 transition-all duration-300 border border-blue-300"
               >
-                Leaderboard
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-500 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                <span className="relative">🏆 Leaderboard</span>
               </button>
               <button
                 onClick={() => setShowInstructions(true)}
-                className="px-2 py-1 sm:px-3 sm:py-1 bg-green-500 text-white rounded text-xs sm:text-sm hover:bg-green-600"
+                className="group relative px-3 py-1 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg text-xs sm:text-sm hover:shadow-green-500/50 transform hover:scale-105 transition-all duration-300 border border-green-300"
               >
-                How to Play
+                <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-500 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                <span className="relative">❓ How to Play</span>
+              </button>
+              <button
+                onClick={() => setShowPowerUps(true)}
+                className="group relative px-3 py-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg text-xs sm:text-sm hover:shadow-purple-500/50 transform hover:scale-105 transition-all duration-300 border border-purple-300"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-500 rounded-lg blur opacity-30 group-hover:opacity-50 transition-opacity"></div>
+                <span className="relative">⚡ Power-Ups</span>
+              </button>
+              <button
+                disabled
+                className="relative px-3 py-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg text-xs sm:text-sm opacity-70 cursor-not-allowed border border-gray-300"
+              >
+                <span className="relative">🎨 Custom Level</span>
+                <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs px-1 rounded-full font-bold">
+                  Soon
+                </div>
               </button>
             </div>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 order-1 sm:order-2">Snake Dodge</h1>
@@ -62,6 +84,10 @@ export const App = () => {
       <Leaderboard isVisible={showLeaderboard} onClose={() => setShowLeaderboard(false)} />
 
       <GameInstructions isVisible={showInstructions} onClose={() => setShowInstructions(false)} />
+
+      <PowerUpsPreview isVisible={showPowerUps} onClose={() => setShowPowerUps(false)} />
+
+      <GameIntro isVisible={showIntro && !loading} onComplete={() => setShowIntro(false)} />
 
       <footer className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 text-[0.8em] text-gray-600">
         <button

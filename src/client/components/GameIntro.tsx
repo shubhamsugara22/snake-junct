@@ -8,7 +8,9 @@ type GameIntroProps = {
 
 export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
   const [animationStep, setAnimationStep] = useState(0);
-  const [particles, setParticles] = useState<Array<{ x: number; y: number; vx: number; vy: number; life: number }>>([]);
+  const [particles, setParticles] = useState<
+    Array<{ x: number; y: number; vx: number; vy: number; life: number }>
+  >([]);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -62,7 +64,7 @@ export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
         <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-blue-400 to-transparent">
           <div className="absolute bottom-0 w-full h-16 bg-gradient-to-r from-blue-300 via-cyan-300 to-blue-300 animate-pulse"></div>
         </div>
-        
+
         {/* Floating particles */}
         {particles.map((particle, i) => (
           <div
@@ -76,7 +78,7 @@ export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
             }}
           />
         ))}
-        
+
         {/* Sun */}
         <div className="absolute top-10 right-10 w-20 h-20 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full shadow-yellow-300 shadow-2xl animate-pulse"></div>
       </div>
@@ -84,9 +86,13 @@ export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
       <div className="text-center text-white relative z-10 max-w-4xl mx-auto px-4">
         {/* Clean Logo */}
         <div className="mb-12">
-          <div className={`transform transition-all duration-1500 ${
-            animationStep >= 1 ? 'scale-100 translate-y-0 rotate-0' : 'scale-0 translate-y-20 rotate-12'
-          }`}>
+          <div
+            className={`transform transition-all duration-1500 ${
+              animationStep >= 1
+                ? 'scale-100 translate-y-0 rotate-0'
+                : 'scale-0 translate-y-20 rotate-12'
+            }`}
+          >
             <div className="relative mb-8">
               {/* 3D Shadow effect */}
               <h1 className="absolute top-3 left-3 text-7xl sm:text-9xl font-black text-black opacity-30 transform skew-x-1">
@@ -101,12 +107,14 @@ export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
                 SNAKE JUNCT
               </div>
             </div>
-            
-            <div className={`transform transition-all duration-1000 delay-300 ${
-              animationStep >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}>
+
+            <div
+              className={`transform transition-all duration-1000 delay-300 ${
+                animationStep >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
               <p className="text-3xl sm:text-4xl font-bold text-yellow-200 drop-shadow-lg mb-8">
-                🏖️ Beach Adventure Awaits! 🐍
+                🐍 A deadly adventure awaits! 🐍
               </p>
             </div>
           </div>
@@ -114,9 +122,11 @@ export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
 
         {/* Subscribe Button */}
         {animationStep >= 2 && (
-          <div className={`mb-8 transform transition-all duration-800 ${
-            animationStep >= 2 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-          }`}>
+          <div
+            className={`mb-8 transform transition-all duration-800 ${
+              animationStep >= 2 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+            }`}
+          >
             <button
               onClick={handleSubscribe}
               className="group relative px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-bold text-xl rounded-2xl shadow-2xl hover:shadow-orange-500/50 transform hover:scale-105 transition-all duration-300 border-4 border-yellow-300 mb-6"
@@ -139,9 +149,11 @@ export const GameIntro = ({ isVisible, onComplete }: GameIntroProps) => {
 
         {/* Start Game Button */}
         {animationStep >= 3 && (
-          <div className={`transform transition-all duration-800 ${
-            animationStep >= 3 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
-          }`}>
+          <div
+            className={`transform transition-all duration-800 ${
+              animationStep >= 3 ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+            }`}
+          >
             <button
               onClick={handleStartGame}
               className="group relative px-16 py-8 bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 text-white font-black text-4xl rounded-3xl shadow-2xl hover:shadow-emerald-500/50 transform hover:scale-110 transition-all duration-300 border-4 border-white"

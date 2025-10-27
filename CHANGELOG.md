@@ -486,11 +486,13 @@ _Game maintains original "snake-junct" project name as requested_
 - **Visual Enhancement**: Score displayed in highlighted boxes
 - **Level Information**: Clear level indication throughout gameplay
 - **Improved Feedback**: Better visual feedback for score achievements
+
 ## Version 1.5.0 - Custom Image Support
 
 ### 🎨 Custom Image System
 
 #### Image Loading Support
+
 - **Automatic Image Loading**: Game loads custom images from `/src/client/public/icons/` directory
 - **Fallback System**: If images aren't found, game uses built-in drawn graphics
 - **Multiple Format Support**: PNG, SVG, JPG, and WebP formats supported
@@ -499,21 +501,25 @@ _Game maintains original "snake-junct" project name as requested_
 #### Supported Image Types
 
 ##### Characters:
+
 - **Chibi Hero**: `chibi-hero.png` or `chibi-hero-alt.png` (32x32 to 64x64px)
 - **Colored Snakes**: `snake-green.png`, `snake-red.png`, `snake-purple.png` (16x64 to 32x128px)
 
 ##### Environment:
-- **Theme-Based Trees**: 
+
+- **Theme-Based Trees**:
   - `oak-tree.png` (default)
   - `palm-tree.png` (beach theme)
-  - `pine-tree.png` (night theme)  
+  - `pine-tree.png` (night theme)
   - `jungle-tree.png` (jungle theme)
 - **Pillars**: `stone-pillar.png`, `marble-pillar.png` (32x128 to 64x256px)
 
 ##### Backgrounds:
+
 - **Theme Backgrounds**: `beach-bg.jpg`, `night-bg.jpg`, `jungle-bg.jpg`, `hell-bg.jpg` (800x600px+)
 
 #### Directory Structure
+
 ```
 src/client/public/icons/
 ├── characters/     # Hero and snake images
@@ -523,11 +529,13 @@ src/client/public/icons/
 ```
 
 #### Smart Theme Integration
+
 - **Automatic Selection**: Trees and backgrounds automatically match current theme
 - **Seamless Integration**: Custom images blend perfectly with game mechanics
 - **Graceful Degradation**: Missing images don't break gameplay
 
 ### 📋 Documentation Added
+
 - **IMAGE_GUIDE.md**: Complete guide for adding custom images
 - **Directory README**: Quick reference in icons directory
 - **Size Specifications**: Recommended dimensions for each image type
@@ -540,18 +548,21 @@ src/client/public/icons/
 #### Reduced to 4 High-Quality Themes
 
 **1. Beach Theme** 🏖️
+
 - **Tropical Paradise**: Beautiful sky-to-sea-to-sand gradient
 - **Static Palm Trees**: Realistic palm trees with detailed fronds
 - **Seagulls**: Static seagulls in flight formation
 - **Cohesive Design**: Perfect tropical beach atmosphere
 
 **2. Night Theme** 🌙
+
 - **Starry Sky**: Deep night gradient from midnight blue to black
 - **Enhanced Stars**: 25 twinkling stars of varying sizes
 - **Glowing Moon**: Large moon with realistic craters and glow effect
 - **Atmospheric**: Perfect nighttime ambiance
 
 **3. Retro Theme** 🌆
+
 - **Neon Cyberpunk**: Hot pink to purple to black gradient
 - **Grid Overlay**: Cyan neon grid lines for retro aesthetic
 - **Neon Skyscrapers**: Black buildings with cyan outlines and magenta windows
@@ -559,6 +570,7 @@ src/client/public/icons/
 - **80s Vibe**: Complete retro-futuristic atmosphere
 
 **4. Desert Theme** 🌵
+
 - **Sandy Landscape**: Warm desert gradient from cream to brown
 - **Sand Dunes**: Realistic undulating dune formations
 - **Desert Cacti**: Detailed cacti with arms and spines
@@ -652,7 +664,6 @@ src/client/public/icons/
 
 All changes maintain complete game functionality while dramatically improving visual quality and stability.
 
-
 ## Version 2.0.0 - PixiJS Graphics Engine Integration (Reverted) 🔄
 
 **Note:** PixiJS integration was attempted but reverted due to compatibility issues between PixiJS v8 and @pixi/particle-emitter v5. The game continues to use the stable Canvas 2D rendering with all enhanced graphics from Version 1.6.0.
@@ -666,6 +677,7 @@ All changes maintain complete game functionality while dramatically improving vi
 #### PixiJS WebGL Rendering Engine
 
 **Complete Migration from Canvas 2D to PixiJS v8:**
+
 - ✅ **Hardware Acceleration**: WebGL-powered rendering for 60 FPS performance
 - ✅ **Enhanced Graphics**: Professional-quality visual effects and animations
 - ✅ **Better Performance**: Smooth gameplay even with many objects on screen
@@ -674,12 +686,14 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🎨 Enhanced Visual Features
 
 #### Player Character Enhancements
+
 - **Glow Effect**: Soft blur filter creates ethereal glow around chibi
 - **Particle Trail**: Orange particle trail follows player movement
 - **Enhanced Details**: Improved eyes, blush, and smile rendering
 - **Smooth Animation**: Hardware-accelerated movement
 
 #### Snake Graphics Improvements
+
 - **Realistic Shadows**: Drop shadows for depth perception
 - **Glow Effects**: Subtle glow filter on snake bodies
 - **Enhanced Segmentation**: Smoother, more realistic body segments
@@ -689,26 +703,31 @@ All changes maintain complete game functionality while dramatically improving vi
 #### Background Theme Enhancements
 
 **Beach Theme:**
+
 - Layered sky, sea, and sand gradients
 - Animated sun with proper positioning
 - Enhanced color palette
 
 **Night Theme:**
+
 - 25 twinkling stars with varied sizes
 - Glowing moon with blur filter effect
 - Deep space gradient background
 
 **Retro Theme:**
+
 - Neon grid overlay with cyan lines
 - Cyberpunk aesthetic
 - Grid-based retro gaming feel
 
 **Desert Theme:**
+
 - Warm desert gradients
 - Glowing sun with blur filter
 - Sandy dune effects
 
 #### Obstacle Improvements
+
 - **Pillars**: Enhanced stone texture with gradient shading
 - **Trees**: Multi-layered foliage with alpha transparency
 - **Better Shadows**: Improved depth perception
@@ -717,12 +736,14 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 💥 Particle Effects System
 
 #### Explosion Effects
+
 - **20-Particle Bursts**: Radial explosion on collision
 - **Color Transitions**: Red to yellow gradient particles
 - **Smooth Animation**: RequestAnimationFrame-based movement
 - **Auto-Cleanup**: Particles fade out and remove themselves
 
 #### Trail Effects
+
 - **Player Trail**: Orange particles follow player
 - **Fade Animation**: Smooth alpha fade-out
 - **Performance Optimized**: Efficient particle management
@@ -730,6 +751,7 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🎮 Maintained Game Functionality
 
 **All Original Features Preserved:**
+
 - ✅ Physics system (gravity, velocity, jumping)
 - ✅ Collision detection (snakes, obstacles, boundaries)
 - ✅ Scoring system (points for passing obstacles)
@@ -742,6 +764,7 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🔧 Technical Implementation
 
 #### PixiJS Integration
+
 ```typescript
 - PixiJS v8.14.0 - Latest WebGL rendering engine
 - PIXI.Application - Main app container
@@ -751,6 +774,7 @@ All changes maintain complete game functionality while dramatically improving vi
 ```
 
 #### Performance Optimizations
+
 - **WebGL Rendering**: GPU-accelerated graphics
 - **Efficient Updates**: Only redraw changed elements
 - **Smart Particle Management**: Auto-cleanup of effects
@@ -758,6 +782,7 @@ All changes maintain complete game functionality while dramatically improving vi
 - **Resolution Scaling**: High DPI display support
 
 #### Code Structure
+
 - **Modular Design**: Separate rendering from game logic
 - **Type Safety**: Full TypeScript implementation
 - **Clean Architecture**: Clear separation of concerns
@@ -766,12 +791,14 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 📊 Performance Improvements
 
 **Before (Canvas 2D):**
+
 - ~30-45 FPS with many objects
 - CPU-based rendering
 - Limited visual effects
 - Basic graphics
 
 **After (PixiJS WebGL):**
+
 - Solid 60 FPS with many objects
 - GPU-accelerated rendering
 - Advanced visual effects
@@ -780,6 +807,7 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🎯 Visual Quality Comparison
 
 **Graphics Enhancements:**
+
 - 🌟 Glow effects on characters
 - 💫 Particle trails and explosions
 - 🎨 Enhanced color gradients
@@ -790,12 +818,14 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🔄 Migration Details
 
 **Files Updated:**
+
 - Created `GamePixi.tsx` - New PixiJS-powered game component
 - Maintained all game logic and functionality
 - Enhanced visual rendering with WebGL
 - Added particle effects system
 
 **Dependencies Used:**
+
 - `pixi.js` v8.14.0 - Core rendering engine
 - `@pixi/particle-emitter` v5.0.8 - Particle system (prepared for future use)
 - `@pixi/react` v8.0.3 - React integration (available)
@@ -803,6 +833,7 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🚀 Future Enhancements Ready
 
 **Prepared Infrastructure:**
+
 - Advanced particle emitter system
 - Sprite-based graphics support
 - Animation timeline capabilities
@@ -814,6 +845,7 @@ All changes maintain complete game functionality while dramatically improving vi
 ### 🎮 User Experience
 
 **What Players Will Notice:**
+
 - ✨ Smoother, more fluid gameplay
 - 🌟 Beautiful glow effects
 - 💥 Satisfying explosion animations
@@ -823,18 +855,19 @@ All changes maintain complete game functionality while dramatically improving vi
 
 All game functionality remains exactly the same - just with dramatically improved graphics and performance!
 
-
 ## Version 1.7.0 - Sound Effects, Power-Ups & Character Skins 🎵🛡️🎨
 
 ### 🎵 Sound Effects System
 
 #### Audio Feedback
+
 - **Jump Sound**: Pleasant "boing" sound when jumping (400Hz sine wave)
 - **Collision Sound**: Dramatic crash sound on game over (100Hz + 80Hz sawtooth)
 - **Point Sound**: Satisfying "ding" when earning points (600Hz square wave)
 - **Power-Up Sound**: Magical ascending tones when collecting shield (800Hz + 1000Hz)
 
 #### Implementation
+
 - Web Audio API for real-time sound generation
 - No external audio files needed
 - Graceful fallback if audio not available
@@ -843,6 +876,7 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🛡️ Shield Power-Up System
 
 #### Shield Mechanics
+
 - **Duration**: 20 seconds of invincibility
 - **Visual Effect**: Glowing cyan shield around character
 - **Timer Display**: Real-time countdown in header
@@ -850,6 +884,7 @@ All game functionality remains exactly the same - just with dramatically improve
 - **Protection**: Complete immunity to snakes, obstacles, and boundaries
 
 #### Shield Features
+
 - Animated pulsing effect
 - Cyan glow with shadow
 - Clear visual feedback
@@ -858,6 +893,7 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🎨 Character Skin System
 
 #### Available Skins
+
 1. **Orange** (Default) - Classic warm orange chibi
 2. **Blue** - Cool sky blue character
 3. **Pink** - Cute bubblegum pink
@@ -865,6 +901,7 @@ All game functionality remains exactly the same - just with dramatically improve
 5. **Purple** - Royal purple character
 
 #### Skin Selection
+
 - Visual skin selector before game start
 - Circular color preview buttons
 - Selected skin highlighted with blue border
@@ -874,12 +911,14 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🎯 Enhanced Scoring System
 
 #### New Point Sources
+
 - **Snakes**: 10 points (unchanged)
 - **Pillars**: 5 points for passing through gap
 - **Trees**: 5 points for passing by
 - **Sound Feedback**: "Ding" sound plays when earning points
 
 #### Improved Tracking
+
 - Obstacles now track if player has passed them
 - No duplicate points for same obstacle
 - Points awarded at exact moment of passing
@@ -887,6 +926,7 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🎮 Gameplay Enhancements
 
 #### Power-Up Mechanics
+
 - Shield spawns at game start
 - Floats at mid-height
 - Moves left with game speed
@@ -894,6 +934,7 @@ All game functionality remains exactly the same - just with dramatically improve
 - Collision detection with player
 
 #### Visual Improvements
+
 - Shield icon with cyan glow
 - Shield symbol (hexagonal shape)
 - Character surrounded by glowing shield when active
@@ -902,6 +943,7 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🔧 Technical Implementation
 
 #### New Types
+
 ```typescript
 - PowerUp type (shield)
 - Player.skin property
@@ -912,12 +954,14 @@ All game functionality remains exactly the same - just with dramatically improve
 ```
 
 #### Sound System
+
 - Oscillator-based synthesis
 - Gain node for volume control
 - Exponential ramp for natural decay
 - Multiple waveform types (sine, square, sawtooth)
 
 #### State Management
+
 - Shield timer tracking
 - Power-up collection state
 - Skin selection persistence
@@ -926,12 +970,14 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🎨 UI Improvements
 
 #### New UI Elements
+
 - **Skin Selector**: 5 circular buttons with gradient backgrounds
 - **Shield Timer**: Animated cyan badge with countdown
 - **Power-Up Icons**: Glowing shield symbols in game
 - **Visual Feedback**: Border highlights on selected skin
 
 #### Responsive Design
+
 - Skin selector works on mobile
 - Shield timer wraps on small screens
 - Touch-friendly skin buttons
@@ -940,12 +986,14 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 📊 Game Balance
 
 #### Power-Up Balance
+
 - 20-second shield duration (balanced for difficulty)
 - Single shield per game session
 - Strategic placement encourages risk/reward
 - Respawn system keeps gameplay dynamic
 
 #### Scoring Balance
+
 - Obstacles now contribute to score
 - Encourages navigating through pillars
 - Rewards skillful play
@@ -956,6 +1004,7 @@ All game functionality remains exactly the same - just with dramatically improve
 ### 🎉 Summary
 
 **New Features:**
+
 - 🎵 4 different sound effects
 - 🛡️ Shield power-up (20s invincibility)
 - 🎨 5 character skins to choose from
@@ -964,10 +1013,10 @@ All game functionality remains exactly the same - just with dramatically improve
 
 **All game functionality preserved** - these are pure enhancements that add fun without changing core mechanics!
 
-
 ## Version 2.0.0 - ML-Powered Adaptive Difficulty (2024)
 
 ### Major Features
+
 - **🤖 ML-Based Adaptive Difficulty System**
   - Tracks player performance metrics (score, survival time, reaction time, jump patterns)
   - Calculates skill level (0-100%) based on multiple factors
@@ -980,7 +1029,9 @@ All game functionality remains exactly the same - just with dramatically improve
   - Real-time skill level display in game UI
 
 ### Improvements
+
 - **Enhanced Coiling Snakes**
+
   - Increased spawn rate from 30% to 50% base (adaptive)
   - Larger coil radius (30px) for better visibility
   - Added outer glow effect for easier detection
@@ -989,6 +1040,7 @@ All game functionality remains exactly the same - just with dramatically improve
   - Improved head rendering with glow effects
 
 - **Better Obstacle Distribution**
+
   - Snakes and obstacles now spawn on alternating positions
   - Minimum 250px spacing between all obstacles (adaptive: 180-250px)
   - Prevents pillar+snake combinations that are impossible to avoid
@@ -1001,7 +1053,153 @@ All game functionality remains exactly the same - just with dramatically improve
   - Respawn at random locations when off-screen
 
 ### Technical Details
+
 - Player profile tracking with exponential moving averages
 - Skill calculation: 40% score + 40% survival + 20% reaction time
 - LocalStorage persistence for cross-session learning
 - Real-time performance metrics collection during gameplay
+
+## Version 2.4.0 - Interactive Scorecard UI (2024)
+
+### UI/UX Enhancements
+
+- **Redesigned Scorecard with Interactive Elements**
+
+  - Gradient backgrounds for each stat card
+  - Hover effects with scale and shadow animations
+  - Individual icons for each metric (🎯 Score, 🟢🟡🔴 Level, 🤖 AI Skill, 🛡️ Shield)
+  - Sparkle effects on hover
+  - Smooth transitions and animations
+
+- **Score Card**
+
+  - Bouncing target icon animation
+  - Gradient background (blue theme)
+  - Hover sparkle effect in corner
+  - Tabular numbers for consistent width
+  - Shadow and scale on hover
+
+- **Level Card**
+
+  - Dynamic emoji based on difficulty (🟢 Easy, 🟡 Medium, 🔴 Hard)
+  - Progress bar at bottom showing difficulty level
+  - Purple gradient theme
+  - Uppercase level text
+
+- **AI Skill Card**
+
+  - Pulsing robot emoji
+  - Animated progress bar showing skill percentage
+  - Green gradient theme with glow effect
+  - Tooltip explaining AI adaptation
+
+- **Shield Card** (when active)
+
+  - Spinning shield icon
+  - Countdown timer with progress bar
+  - Pulsing glow effect
+  - Slide-in animation when activated
+  - Cyan gradient theme
+
+- **Stats Summary** (during gameplay)
+
+  - Shows total games played
+  - Average score display
+  - Reaction time in milliseconds
+  - Frosted glass effect (backdrop blur)
+  - Fade-in animation
+
+- **Title Enhancement**
+  - Gradient text effect on "Snake Dodge"
+  - Smooth color transition (purple → pink → blue)
+
+### Custom Animations
+
+- `bounce-slow`: Gentle bouncing for icons
+- `pulse-slow`: Subtle pulsing effect
+- `spin-slow`: Smooth rotation for shield
+- `slide-in`: Entry animation for shield card
+- `fade-in`: Smooth appearance
+- `pulse-glow`: Glowing border effect
+
+### Technical Details
+
+- All animations use CSS keyframes for performance
+- No game logic or data modified
+- Hover states use transform for GPU acceleration
+- Tabular numbers for consistent score width
+- Responsive design maintained
+- Accessibility-friendly (no motion for reduced-motion users could be added)
+
+
+## Version 2.5.0 - Interactive Leaderboard Redesign (2024)
+
+### Major UI Overhaul
+- **Complete Leaderboard Redesign** with modern, engaging interface
+- **Dual Tab System**: All-Time High Scorers & Weekly Top Players
+- **Animated Rankings** with staggered entrance animations
+- **Trophy System** with medal emojis for top 3 players
+
+### Visual Enhancements
+
+**Header**
+- Gradient background (purple → pink → blue)
+- Animated bouncing trophy icon
+- Shimmer effect overlay
+- Rotating close button on hover
+
+**Tab System**
+- 👑 All-Time High: Lifetime champions
+- ⚡ Weekly Top: Last 7 days leaders
+- Smooth tab switching with scale animations
+- Active tab highlighted with gradient
+
+**Rank Cards**
+- 🥇 Gold gradient for 1st place with pulsing glow
+- 🥈 Silver gradient for 2nd place
+- 🥉 Bronze gradient for 3rd place
+- Blue gradient for other ranks
+- Hover effects: scale up, enhanced shadows
+- Shimmer overlay on hover
+
+**Player Information**
+- Username with bold typography
+- Difficulty level badges (Easy/Medium/Hard)
+- AI skill percentage display
+- Relative timestamps (e.g., "5m ago", "2h ago", "3d ago")
+
+**Score Display**
+- Large gradient numbers matching rank color
+- Thousands separator for readability
+- "POINTS" label below score
+
+**Footer Statistics**
+- Total players count
+- Highest score display
+- Average score calculation
+- Gradient background matching theme
+
+### Animations
+- `slide-up`: Entry animation for leaderboard
+- `trophy-bounce`: Bouncing trophy in header
+- `shimmer`: Flowing shimmer effect
+- `pulse-ring`: Pulsing glow for top 3
+- Staggered animations for rank cards (0.1s delay each)
+- Smooth tab transitions
+- Hover scale effects
+
+### Features
+- **Weekly Filtering**: Automatically filters scores from last 7 days
+- **Smart Timestamps**: Human-readable time display
+- **Empty States**: Engaging messages when no scores exist
+- **Loading State**: Animated game controller while fetching
+- **Responsive Design**: Works on all screen sizes
+- **Backdrop Blur**: Modern frosted glass effect
+
+### Technical Details
+- No data structure changes
+- Backward compatible with existing API
+- CSS keyframe animations for performance
+- Gradient text using bg-clip-text
+- Conditional styling based on rank
+- Efficient timestamp calculations

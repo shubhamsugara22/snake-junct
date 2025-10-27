@@ -8,6 +8,80 @@ import {
   GameConfig,
 } from '../../shared/types/game';
 
+// Custom CSS animations for interactive scorecard
+const scorecardStyles = `
+  @keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+  
+  @keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes slide-in {
+    from { 
+      transform: translateX(100px);
+      opacity: 0;
+    }
+    to { 
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+  }
+  
+  .animate-bounce-slow {
+    animation: bounce-slow 2s ease-in-out infinite;
+  }
+  
+  .animate-pulse-slow {
+    animation: pulse-slow 3s ease-in-out infinite;
+  }
+  
+  .animate-spin-slow {
+    animation: spin-slow 3s linear infinite;
+  }
+  
+  .animate-slide-in {
+    animation: slide-in 0.5s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.5s ease-out;
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+`;
+
+// Inject styles
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = scorecardStyles;
+  document.head.appendChild(styleSheet);
+}
+
 const GAME_CONFIG: GameConfig = {
   gridWidth: 600,
   gridHeight: 400,
@@ -1630,35 +1704,123 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   return (
     <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full">
-      <div className="flex flex-col items-center gap-2 w-full">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 text-center">
-          Snake Dodge - {username}
+      <div className="flex flex-col items-center gap-3 w-full">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 text-center animate-fade-in">
+          <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
+            Snake Dodge
+          </span>
+          <span className="text-gray-700"> - {username}</span>
         </h1>
-        <div className="flex gap-4 text-base sm:text-lg flex-wrap justify-center">
-          <div className="bg-blue-100 px-3 py-1 rounded-lg border-2 border-blue-300">
-            <span className="text-blue-800 font-bold">Score: {gameState.score}</span>
+        
+        {/* Interactive Scorecard */}
+        <div className="flex gap-3 text-base sm:text-lg flex-wrap justify-center">
+          {/* Score Card - Animated on change */}
+          <div className="group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></div>
+            <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 px-4 py-2 rounded-lg border-2 border-blue-400 shadow-md hover:shadow-lg hover:scale-105 transform transition-all duration-300 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl animate-bounce-slow">🎯</span>
+                <div className="flex flex-col">
+                  <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Score</span>
+                  <span className="text-blue-900 font-black text-xl tabular-nums">
+                    {gameState.score}
+                  </span>
+                </div>
+              </div>
+              {/* Sparkle effect on hover */}
+              <div className="absolute top-0 right-0 w-2 h-2 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-ping"></div>
+            </div>
           </div>
-          <div className="bg-purple-100 px-3 py-1 rounded-lg border-2 border-purple-300">
-            <span className="text-purple-800 font-bold">
-              Level: {gameState.level.toUpperCase()}
-            </span>
+
+          {/* Level Card - With difficulty indicator */}
+          <div className="group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-purple-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></div>
+            <div className="relative bg-gradient-to-br from-purple-50 to-purple-100 px-4 py-2 rounded-lg border-2 border-purple-400 shadow-md hover:shadow-lg hover:scale-105 transform transition-all duration-300 cursor-pointer">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">
+                  {gameState.level === 'easy' ? '🟢' : gameState.level === 'medium' ? '🟡' : '🔴'}
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Level</span>
+                  <span className="text-purple-900 font-black text-xl uppercase">
+                    {gameState.level}
+                  </span>
+                </div>
+              </div>
+              {/* Progress bar indicator */}
+              <div className="absolute bottom-0 left-0 h-1 bg-purple-600 transition-all duration-500"
+                   style={{ width: gameState.level === 'easy' ? '33%' : gameState.level === 'medium' ? '66%' : '100%' }}>
+              </div>
+            </div>
           </div>
-          <div
-            className="bg-green-100 px-3 py-1 rounded-lg border-2 border-green-300"
-            title="AI adapts difficulty to your skill"
-          >
-            <span className="text-green-800 font-bold">
-              🤖 Skill: {Math.round(playerProfile.skillLevel * 100)}%
-            </span>
+
+          {/* Skill Card - AI Indicator with animated progress */}
+          <div className="group relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></div>
+            <div 
+              className="relative bg-gradient-to-br from-green-50 to-green-100 px-4 py-2 rounded-lg border-2 border-green-400 shadow-md hover:shadow-lg hover:scale-105 transform transition-all duration-300 cursor-pointer"
+              title="AI adapts difficulty to your skill"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-2xl animate-pulse-slow">🤖</span>
+                <div className="flex flex-col">
+                  <span className="text-xs text-green-600 font-semibold uppercase tracking-wide">AI Skill</span>
+                  <span className="text-green-900 font-black text-xl tabular-nums">
+                    {Math.round(playerProfile.skillLevel * 100)}%
+                  </span>
+                </div>
+              </div>
+              {/* Skill level progress bar */}
+              <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-400 to-emerald-600 transition-all duration-1000"
+                   style={{ width: `${playerProfile.skillLevel * 100}%` }}>
+              </div>
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-green-400 opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-300"></div>
+            </div>
           </div>
+
+          {/* Shield Card - Animated countdown */}
           {gameState.shieldActive && (
-            <div className="bg-cyan-100 px-3 py-1 rounded-lg border-2 border-cyan-300 animate-pulse">
-              <span className="text-cyan-800 font-bold">
-                🛡️ Shield: {Math.ceil((gameState.shieldEndTime - Date.now()) / 1000)}s
-              </span>
+            <div className="group relative overflow-hidden animate-slide-in">
+              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-600 animate-pulse-glow rounded-lg"></div>
+              <div className="relative bg-gradient-to-br from-cyan-50 to-cyan-100 px-4 py-2 rounded-lg border-2 border-cyan-400 shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl animate-spin-slow">🛡️</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-cyan-600 font-semibold uppercase tracking-wide">Shield</span>
+                    <span className="text-cyan-900 font-black text-xl tabular-nums">
+                      {Math.ceil((gameState.shieldEndTime - Date.now()) / 1000)}s
+                    </span>
+                  </div>
+                </div>
+                {/* Countdown progress bar */}
+                <div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyan-400 to-blue-600 transition-all duration-1000"
+                  style={{ 
+                    width: `${((gameState.shieldEndTime - Date.now()) / 20000) * 100}%` 
+                  }}>
+                </div>
+                {/* Pulsing glow */}
+                <div className="absolute inset-0 bg-cyan-400 opacity-20 blur-lg animate-pulse"></div>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Stats Summary - Shows during gameplay */}
+        {gameState.isPlaying && (
+          <div className="flex gap-2 text-xs text-gray-600 animate-fade-in">
+            <span className="bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-300">
+              ⏱️ Games: {playerProfile.totalGames}
+            </span>
+            <span className="bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-300">
+              📊 Avg: {Math.round(playerProfile.averageScore)}
+            </span>
+            <span className="bg-white/50 backdrop-blur-sm px-2 py-1 rounded-full border border-gray-300">
+              ⚡ Reaction: {Math.round(playerProfile.reactionTime)}ms
+            </span>
+          </div>
+        )}
       </div>
 
       {!gameState.isPlaying && !gameState.isGameOver && (

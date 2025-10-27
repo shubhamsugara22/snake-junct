@@ -107,7 +107,7 @@ const GAME_CONFIG: GameConfig = {
 };
 
 type BackgroundTheme = 'beach' | 'night' | 'retro' | 'desert' | 'halloween';
-type CharacterSkin = 'orange' | 'blue' | 'pink' | 'green' | 'purple';
+type CharacterSkin = 'orange' | 'blue' | 'pink' | 'green' | 'purple' | 'witch' | 'ghost';
 
 const BACKGROUND_THEMES: BackgroundTheme[] = ['beach', 'night', 'retro', 'desert'];
 
@@ -195,6 +195,9 @@ const SKIN_COLORS: Record<CharacterSkin, { primary: string; secondary: string }>
   pink: { primary: '#FFB6C1', secondary: '#FF69B4' },
   green: { primary: '#90EE90', secondary: '#32CD32' },
   purple: { primary: '#DDA0DD', secondary: '#9370DB' },
+  // HALLOWEEN EVENT - Special skins
+  witch: { primary: '#8B4513', secondary: '#654321' }, // Light brown witch hat for visibility
+  ghost: { primary: '#FFFFFF', secondary: '#E6E6FA' }, // White ghost
 };
 
 // Sound effect functions
@@ -243,6 +246,47 @@ const playWitchCackle = () => {
   setTimeout(() => playSound(800, 0.05, 'square'), 100);
   setTimeout(() => playSound(600, 0.05, 'square'), 150);
 };
+const playFireSound = () => {
+  playSound(200, 0.15, 'sawtooth');
+  setTimeout(() => playSound(180, 0.15, 'sawtooth'), 50);
+  setTimeout(() => playSound(220, 0.15, 'sawtooth'), 100);
+};
+const playKillSound = () => {
+  playSound(1000, 0.1, 'square');
+  setTimeout(() => playSound(800, 0.1, 'square'), 50);
+};
+
+// HALLOWEEN EVENT - Evil laughter on death
+const playEvilLaugh = () => {
+  // Evil descending laugh
+  playSound(600, 0.15, 'sawtooth');
+  setTimeout(() => playSound(550, 0.15, 'sawtooth'), 150);
+  setTimeout(() => playSound(500, 0.15, 'sawtooth'), 300);
+  setTimeout(() => playSound(450, 0.15, 'sawtooth'), 450);
+  setTimeout(() => playSound(400, 0.2, 'sawtooth'), 600);
+  setTimeout(() => playSound(350, 0.25, 'sawtooth'), 800);
+};
+
+// HALLOWEEN EVENT - Spooky background music loop
+let spookyMusicInterval: number | undefined;
+const startSpookyMusic = () => {
+  if (spookyMusicInterval) return; // Already playing
+  
+  const notes = [220, 233, 196, 185, 220, 233, 196, 185]; // Spooky melody
+  let noteIndex = 0;
+  
+  spookyMusicInterval = window.setInterval(() => {
+    playSound(notes[noteIndex % notes.length], 0.3, 'triangle');
+    noteIndex++;
+  }, 800);
+};
+
+const stopSpookyMusic = () => {
+  if (spookyMusicInterval) {
+    window.clearInterval(spookyMusicInterval);
+    spookyMusicInterval = undefined;
+  }
+};
 
 type GameProps = {
   username: string;
@@ -279,9 +323,36 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     isPlaying: false,
     shieldActive: false,
     shieldEndTime: 0,
+    fireActive: false,
+    fireEndTime: 0,
   });
 
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>('beach');
+  const [showGameOverUI, setShowGameOverUI] = useState(false);
+
+  // Handle delayed game over screen (5 seconds for screenshots)
+  useEffect(() => {
+    if (gameState.isGameOver && !showGameOverUI) {
+      const timer = setTimeout(() => {
+        setShowGameOverUI(true);
+      }, 5000); // 5 second delay
+
+      return () => clearTimeout(timer);
+    } else if (!gameState.isGameOver) {
+      setShowGameOverUI(false);
+    }
+  }, [gameState.isGameOver, showGameOverUI]);
+
+  // HALLOWEEN EVENT - Spooky music control
+  useEffect(() => {
+    if (HALLOWEEN_EVENT_ACTIVE && gameState.isPlaying && !gameState.isGameOver) {
+      startSpookyMusic();
+    } else {
+      stopSpookyMusic();
+    }
+
+    return () => stopSpookyMusic();
+  }, [gameState.isPlaying, gameState.isGameOver]);
 
   const generateSnake = useCallback((level: GameLevel, profile: PlayerProfile): Snake => {
     const baseSpeed = GAME_CONFIG.levelSpeeds[level];
@@ -422,6 +493,35 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         });
       }
 
+      // HALLOWEEN EVENT - Add rare fire power-up (only during Halloween)
+      if (HALLOWEEN_EVENT_ACTIVE) {
+        // 30% chance to spawn fire power-up (rare)
+        if (Math.random() < 0.3) {
+          powerUps.push({
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'fire' as const,
+            position: {
+              x: GAME_CONFIG.gridWidth + 1000 + Math.random() * 1500,
+              y: 80 + Math.random() * (GAME_CONFIG.gridHeight - 160),
+            },
+            collected: false,
+          });
+        }
+
+        // HALLOWEEN EVENT - Add super rare candy power-up (10% chance)
+        if (Math.random() < 0.1) {
+          powerUps.push({
+            id: Math.random().toString(36).substring(2, 9),
+            type: 'candy' as const,
+            position: {
+              x: GAME_CONFIG.gridWidth + 1500 + Math.random() * 2000,
+              y: 80 + Math.random() * (GAME_CONFIG.gridHeight - 160),
+            },
+            collected: false,
+          });
+        }
+      }
+
       // Reset ML tracking
       gameStartTime.current = Date.now();
       jumpCount.current = 0;
@@ -444,6 +544,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         isPlaying: true,
         shieldActive: false,
         shieldEndTime: 0,
+        fireActive: false,
+        fireEndTime: 0,
       });
     },
     [generateSnake, generateObstacle, selectedSkin, username]
@@ -515,6 +617,11 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         newState.shieldActive = false;
       }
 
+      // Check if fire expired (HALLOWEEN EVENT)
+      if (newState.fireActive && Date.now() > newState.fireEndTime) {
+        newState.fireActive = false;
+      }
+
       // Update player physics
       newState.player.velocity += GAME_CONFIG.gravity;
       newState.player.position.y += newState.player.velocity;
@@ -562,9 +669,25 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
         if (distance < 20 && !newPowerUp.collected) {
           newPowerUp.collected = true;
-          newState.shieldActive = true;
-          newState.shieldEndTime = Date.now() + 20000; // 20 seconds
-          playPowerUpSound();
+          
+          if (newPowerUp.type === 'shield') {
+            newState.shieldActive = true;
+            newState.shieldEndTime = Date.now() + 20000; // 20 seconds
+            playPowerUpSound();
+          } else if (newPowerUp.type === 'fire') {
+            // HALLOWEEN EVENT - Fire power-up
+            newState.fireActive = true;
+            newState.fireEndTime = Date.now() + 10000; // 10 seconds
+            playFireSound();
+          } else if (newPowerUp.type === 'candy') {
+            // HALLOWEEN EVENT - Candy power-up (BOTH fire AND shield!)
+            newState.shieldActive = true;
+            newState.shieldEndTime = Date.now() + 10000; // 10 seconds
+            newState.fireActive = true;
+            newState.fireEndTime = Date.now() + 10000; // 10 seconds
+            playPowerUpSound();
+            setTimeout(() => playFireSound(), 100);
+          }
         }
 
         // Reset if off screen at random positions
@@ -577,7 +700,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       });
 
       // Update snakes
-      newState.snakes = newState.snakes.map((snake) => {
+      newState.snakes = newState.snakes.filter((snake) => {
         const newSnake = { ...snake };
         newSnake.position.x += newSnake.direction.x * newSnake.speed;
 
@@ -593,6 +716,13 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           newSnake.direction.y *= -1;
         }
 
+        // HALLOWEEN EVENT - Fire power-up kills snakes
+        if (newState.fireActive && checkSnakeCollision(newState.player.position, newSnake)) {
+          newState.score += 10; // 10 points for each kill
+          playKillSound();
+          return false; // Remove snake
+        }
+
         if (newSnake.position.x < -50) {
           newSnake.position.x = GAME_CONFIG.gridWidth + 50;
           newSnake.position.y = Math.random() * (GAME_CONFIG.gridHeight - 100) + 50;
@@ -605,13 +735,13 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           }
         }
 
-        if (checkSnakeCollision(newState.player.position, newSnake) && !newState.shieldActive) {
+        if (checkSnakeCollision(newState.player.position, newSnake) && !newState.shieldActive && !newState.fireActive) {
           newState.isGameOver = true;
           newState.isPlaying = false;
 
-          // Halloween event - play witch cackle on collision
+          // Halloween event - play evil laugh on collision
           if (HALLOWEEN_EVENT_ACTIVE) {
-            playWitchCackle();
+            playEvilLaugh();
           } else {
             playCollisionSound();
           }
@@ -629,7 +759,13 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           onScoreUpdate(newState.score, newState.level);
         }
 
-        return newSnake;
+        // Update the snake in the array
+        const index = newState.snakes.findIndex(s => s.id === newSnake.id);
+        if (index !== -1) {
+          newState.snakes[index] = newSnake;
+        }
+        
+        return true; // Keep snake
       });
 
       // Update obstacles
@@ -811,6 +947,65 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.quadraticCurveTo(bat.x + 8, bat.y - 5 + wingFlap, bat.x + 12, bat.y);
         ctx.quadraticCurveTo(bat.x + 8, bat.y + 3, bat.x, bat.y);
         ctx.fill();
+      });
+
+      // HALLOWEEN EVENT - Zombies walking on ground
+      const zombiePositions = [
+        { x: 100, sway: 0 },
+        { x: 300, sway: 1 },
+        { x: 500, sway: 2 },
+      ];
+
+      zombiePositions.forEach((zombie, i) => {
+        const zombieX = zombie.x + Math.sin(Date.now() * 0.001 + zombie.sway) * 10;
+        const zombieY = GAME_CONFIG.gridHeight - 60;
+
+        // Zombie body
+        ctx.fillStyle = '#4a5a4a';
+        ctx.fillRect(zombieX - 10, zombieY, 20, 40);
+
+        // Torn clothes
+        ctx.fillStyle = '#2a3a2a';
+        ctx.fillRect(zombieX - 10, zombieY + 10, 20, 5);
+        ctx.fillRect(zombieX - 10, zombieY + 25, 20, 5);
+
+        // Zombie head
+        ctx.fillStyle = '#6a8a6a';
+        ctx.fillRect(zombieX - 8, zombieY - 15, 16, 15);
+
+        // Glowing eyes
+        ctx.fillStyle = '#ff0000';
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 5;
+        ctx.fillRect(zombieX - 5, zombieY - 10, 3, 3);
+        ctx.fillRect(zombieX + 2, zombieY - 10, 3, 3);
+        ctx.shadowBlur = 0;
+
+        // Mouth
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(zombieX - 4, zombieY - 5, 8, 2);
+
+        // Arms reaching out
+        ctx.strokeStyle = '#6a8a6a';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        const armSway = Math.sin(Date.now() * 0.002 + i) * 5;
+        ctx.beginPath();
+        ctx.moveTo(zombieX - 10, zombieY + 10);
+        ctx.lineTo(zombieX - 20, zombieY + 5 + armSway);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(zombieX + 10, zombieY + 10);
+        ctx.lineTo(zombieX + 20, zombieY + 5 - armSway);
+        ctx.stroke();
+
+        // Legs
+        ctx.beginPath();
+        ctx.moveTo(zombieX - 5, zombieY + 40);
+        ctx.lineTo(zombieX - 5, zombieY + 55);
+        ctx.moveTo(zombieX + 5, zombieY + 40);
+        ctx.lineTo(zombieX + 5, zombieY + 55);
+        ctx.stroke();
       });
 
       // Spooky fog at bottom
@@ -1062,27 +1257,130 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     gameState.powerUps.forEach((powerUp) => {
       if (powerUp.collected) return;
 
-      // Shield icon
-      ctx.strokeStyle = '#00FFFF';
-      ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(powerUp.position.x, powerUp.position.y, 12, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.stroke();
+      if (powerUp.type === 'shield') {
+        // Shield icon
+        ctx.strokeStyle = '#00FFFF';
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(powerUp.position.x, powerUp.position.y, 12, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
 
-      // Shield symbol
-      ctx.strokeStyle = '#00FFFF';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(powerUp.position.x, powerUp.position.y - 8);
-      ctx.lineTo(powerUp.position.x - 6, powerUp.position.y - 4);
-      ctx.lineTo(powerUp.position.x - 6, powerUp.position.y + 4);
-      ctx.lineTo(powerUp.position.x, powerUp.position.y + 8);
-      ctx.lineTo(powerUp.position.x + 6, powerUp.position.y + 4);
-      ctx.lineTo(powerUp.position.x + 6, powerUp.position.y - 4);
-      ctx.closePath();
-      ctx.stroke();
+        // Shield symbol
+        ctx.strokeStyle = '#00FFFF';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(powerUp.position.x, powerUp.position.y - 8);
+        ctx.lineTo(powerUp.position.x - 6, powerUp.position.y - 4);
+        ctx.lineTo(powerUp.position.x - 6, powerUp.position.y + 4);
+        ctx.lineTo(powerUp.position.x, powerUp.position.y + 8);
+        ctx.lineTo(powerUp.position.x + 6, powerUp.position.y + 4);
+        ctx.lineTo(powerUp.position.x + 6, powerUp.position.y - 4);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (powerUp.type === 'fire') {
+        // HALLOWEEN EVENT - Fire power-up icon
+        const fireX = powerUp.position.x;
+        const fireY = powerUp.position.y;
+        
+        // Outer glow
+        ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
+        ctx.shadowColor = '#FF6600';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(fireX, fireY, 15, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        
+        // Fire flame shape
+        ctx.fillStyle = '#FF4500';
+        ctx.beginPath();
+        ctx.moveTo(fireX, fireY - 10);
+        ctx.quadraticCurveTo(fireX + 8, fireY - 5, fireX + 6, fireY + 5);
+        ctx.quadraticCurveTo(fireX + 3, fireY + 8, fireX, fireY + 10);
+        ctx.quadraticCurveTo(fireX - 3, fireY + 8, fireX - 6, fireY + 5);
+        ctx.quadraticCurveTo(fireX - 8, fireY - 5, fireX, fireY - 10);
+        ctx.fill();
+        
+        // Inner flame
+        ctx.fillStyle = '#FF8C00';
+        ctx.beginPath();
+        ctx.moveTo(fireX, fireY - 6);
+        ctx.quadraticCurveTo(fireX + 5, fireY - 2, fireX + 4, fireY + 3);
+        ctx.quadraticCurveTo(fireX + 2, fireY + 5, fireX, fireY + 6);
+        ctx.quadraticCurveTo(fireX - 2, fireY + 5, fireX - 4, fireY + 3);
+        ctx.quadraticCurveTo(fireX - 5, fireY - 2, fireX, fireY - 6);
+        ctx.fill();
+        
+        // Hot core
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.moveTo(fireX, fireY - 3);
+        ctx.quadraticCurveTo(fireX + 3, fireY, fireX + 2, fireY + 2);
+        ctx.quadraticCurveTo(fireX, fireY + 3, fireX - 2, fireY + 2);
+        ctx.quadraticCurveTo(fireX - 3, fireY, fireX, fireY - 3);
+        ctx.fill();
+        
+        // Animated sparkles
+        const sparkleOffset = Math.sin(Date.now() * 0.01) * 3;
+        ctx.fillStyle = '#FFFF00';
+        ctx.beginPath();
+        ctx.arc(fireX - 8 + sparkleOffset, fireY - 8, 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(fireX + 8 - sparkleOffset, fireY - 8, 2, 0, 2 * Math.PI);
+        ctx.fill();
+      } else if (powerUp.type === 'candy') {
+        // HALLOWEEN EVENT - Candy power-up icon (super rare!)
+        const candyX = powerUp.position.x;
+        const candyY = powerUp.position.y;
+        
+        // Rainbow glow
+        ctx.shadowColor = '#FF69B4';
+        ctx.shadowBlur = 20;
+        
+        // Candy wrapper (striped)
+        ctx.fillStyle = '#FF1493';
+        ctx.fillRect(candyX - 10, candyY - 6, 20, 12);
+        
+        // Stripes
+        ctx.fillStyle = '#FFD700';
+        for (let i = 0; i < 4; i++) {
+          ctx.fillRect(candyX - 10 + i * 5, candyY - 6, 2, 12);
+        }
+        
+        // Wrapper twists
+        ctx.fillStyle = '#FF69B4';
+        ctx.beginPath();
+        ctx.moveTo(candyX - 10, candyY);
+        ctx.lineTo(candyX - 15, candyY - 5);
+        ctx.lineTo(candyX - 15, candyY + 5);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(candyX + 10, candyY);
+        ctx.lineTo(candyX + 15, candyY - 5);
+        ctx.lineTo(candyX + 15, candyY + 5);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        
+        // Sparkles (animated)
+        const candySparkle = Math.sin(Date.now() * 0.01) * 2;
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.arc(candyX - 12 + candySparkle, candyY - 10, 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(candyX + 12 - candySparkle, candyY - 10, 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(candyX, candyY + 12, 2, 0, 2 * Math.PI);
+        ctx.fill();
+      }
     });
 
     // Draw super cute chibi character
@@ -1100,6 +1398,31 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.beginPath();
       ctx.arc(playerX, playerY, playerRadius + 5, 0, 2 * Math.PI);
       ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // HALLOWEEN EVENT - Fire effect
+    if (gameState.fireActive) {
+      ctx.strokeStyle = '#FF4500';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#FF6600';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(playerX, playerY, playerRadius + 8, 0, 2 * Math.PI);
+      ctx.stroke();
+      
+      // Flame particles around player
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2 + Date.now() * 0.005;
+        const distance = playerRadius + 10 + Math.sin(Date.now() * 0.01 + i) * 3;
+        const fx = playerX + Math.cos(angle) * distance;
+        const fy = playerY + Math.sin(angle) * distance;
+        
+        ctx.fillStyle = i % 2 === 0 ? '#FF4500' : '#FF8C00';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 3, 0, 2 * Math.PI);
+        ctx.fill();
+      }
       ctx.shadowBlur = 0;
     }
 
@@ -1186,6 +1509,125 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     ctx.beginPath();
     ctx.arc(playerX + playerRadius + 3, playerY - 3, 1.5, 0, 2 * Math.PI);
     ctx.fill();
+
+    // HALLOWEEN EVENT - Special skin rendering
+    if (selectedSkin === 'witch') {
+      // Large witch hat (drawn AFTER body so it's on top) - LIGHT BROWN for visibility
+      ctx.fillStyle = '#8B4513'; // Light brown
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 2;
+      
+      // Hat cone (larger and more visible)
+      ctx.beginPath();
+      ctx.moveTo(playerX - 12, playerY - playerRadius - 2);
+      ctx.lineTo(playerX, playerY - playerRadius - 18);
+      ctx.lineTo(playerX + 12, playerY - playerRadius - 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      
+      // Hat brim (wider)
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(playerX - 14, playerY - playerRadius - 2, 28, 4);
+      ctx.strokeRect(playerX - 14, playerY - playerRadius - 2, 28, 4);
+      
+      // Hat buckle (gold)
+      ctx.fillStyle = '#FFD700';
+      ctx.fillRect(playerX - 3, playerY - playerRadius - 10, 6, 4);
+      ctx.strokeStyle = '#DAA520';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(playerX - 3, playerY - playerRadius - 10, 6, 4);
+      
+      // Witch stars on hat
+      ctx.fillStyle = '#FFD700';
+      ctx.beginPath();
+      ctx.arc(playerX - 8, playerY - playerRadius - 12, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + 8, playerY - playerRadius - 12, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+      
+    } else if (selectedSkin === 'ghost') {
+      // GHOST CHARACTER - Complete replacement, not just a skin!
+      // Clear the normal character and draw ghost instead
+      ctx.clearRect(playerX - playerRadius - 10, playerY - playerRadius - 10, playerRadius * 2 + 20, playerRadius * 2 + 20);
+      
+      // Ghost body (white sheet)
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowColor = '#E6E6FA';
+      ctx.shadowBlur = 15;
+      
+      // Main ghost body
+      ctx.beginPath();
+      ctx.arc(playerX, playerY - 2, playerRadius + 2, Math.PI, 0, true);
+      ctx.lineTo(playerX + playerRadius + 2, playerY + playerRadius);
+      
+      // Wavy bottom with 3 points
+      ctx.quadraticCurveTo(
+        playerX + playerRadius * 0.66, 
+        playerY + playerRadius + 6, 
+        playerX + playerRadius * 0.33, 
+        playerY + playerRadius
+      );
+      ctx.quadraticCurveTo(
+        playerX, 
+        playerY + playerRadius + 6, 
+        playerX - playerRadius * 0.33, 
+        playerY + playerRadius
+      );
+      ctx.quadraticCurveTo(
+        playerX - playerRadius * 0.66, 
+        playerY + playerRadius + 6, 
+        playerX - playerRadius - 2, 
+        playerY + playerRadius
+      );
+      
+      ctx.lineTo(playerX - playerRadius - 2, playerY - 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      
+      // Ghost eyes (black hollow)
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.ellipse(playerX - 4, playerY - 2, 2.5, 4, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(playerX + 4, playerY - 2, 2.5, 4, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Ghost "OOO" mouth
+      ctx.beginPath();
+      ctx.ellipse(playerX, playerY + 4, 2, 3, 0, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Ethereal glow (pulsing)
+      const glowIntensity = 0.3 + Math.sin(Date.now() * 0.003) * 0.2;
+      ctx.shadowColor = '#E6E6FA';
+      ctx.shadowBlur = 20;
+      ctx.fillStyle = `rgba(230, 230, 250, ${glowIntensity})`;
+      ctx.beginPath();
+      ctx.arc(playerX, playerY, playerRadius + 6, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Floating sparkles
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      const floatOffset = Math.sin(Date.now() * 0.005) * 3;
+      ctx.beginPath();
+      ctx.arc(playerX - 14, playerY - 8 + floatOffset, 2, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + 14, playerY - 8 - floatOffset, 2, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX, playerY - 15 + floatOffset * 0.5, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      return; // Skip normal character rendering for ghost
+    }
 
     // Draw snakes (or Halloween creatures)
     gameState.snakes.forEach((snake, snakeIndex) => {
@@ -1805,6 +2247,33 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               </div>
             </div>
           )}
+
+          {/* HALLOWEEN EVENT - Fire Card - Animated countdown */}
+          {gameState.fireActive && (
+            <div className="group relative overflow-hidden animate-slide-in">
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-400 to-red-600 animate-pulse-glow rounded-lg"></div>
+              <div className="relative bg-gradient-to-br from-orange-50 to-red-100 px-4 py-2 rounded-lg border-2 border-orange-400 shadow-lg hover:shadow-xl hover:scale-105 transform transition-all duration-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">🔥</span>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Fire Power</span>
+                    <span className="text-orange-900 font-black text-xl tabular-nums">
+                      {Math.ceil((gameState.fireEndTime - Date.now()) / 1000)}s
+                    </span>
+                  </div>
+                </div>
+                {/* Countdown progress bar */}
+                <div 
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-400 to-red-600 transition-all duration-1000"
+                  style={{ 
+                    width: `${((gameState.fireEndTime - Date.now()) / 10000) * 100}%` 
+                  }}>
+                </div>
+                {/* Pulsing glow */}
+                <div className="absolute inset-0 bg-orange-400 opacity-20 blur-lg animate-pulse"></div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Summary - Shows during gameplay */}
@@ -1899,11 +2368,44 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           }}
         />
 
-        {gameState.isGameOver && (
-          <div className="absolute inset-0 bg-black bg-opacity-70 flex flex-col items-center justify-center text-white p-4">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-center text-red-400">
-              Game Over!
-            </h2>
+        {gameState.isGameOver && !showGameOverUI && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
+            <div className="text-center animate-fade-in">
+              {HALLOWEEN_EVENT_ACTIVE ? (
+                <>
+                  <p className="text-3xl font-bold text-red-600 mb-4 animate-pulse">💀 YOU HAVE FALLEN 💀</p>
+                  <p className="text-xl text-orange-400 mb-2">📸 Capture your doom...</p>
+                  <p className="text-lg text-gray-300">The darkness awaits...</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-bold text-yellow-400 mb-2">📸 Screenshot Time!</p>
+                  <p className="text-lg text-gray-300">Menu appears in {Math.ceil((5000 - (Date.now() % 5000)) / 1000)}s...</p>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {gameState.isGameOver && showGameOverUI && (
+          <div className="absolute inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center text-white p-4 animate-fade-in">
+            {HALLOWEEN_EVENT_ACTIVE ? (
+              <>
+                <div className="text-center mb-6 animate-pulse">
+                  <h2 className="text-4xl sm:text-5xl font-black mb-4 text-red-600 drop-shadow-lg">
+                    💀 GAME OVER 💀
+                  </h2>
+                  <p className="text-2xl sm:text-3xl font-bold text-red-500 mb-4 animate-bounce">
+                    🩸 I AM COMING FOR YOU!!! 🩸
+                  </p>
+                  <p className="text-lg text-orange-400">The spirits are not pleased...</p>
+                </div>
+              </>
+            ) : (
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4 text-center text-red-400">
+                Game Over!
+              </h2>
+            )}
             <div className="bg-white bg-opacity-20 backdrop-blur-sm rounded-2xl p-6 mb-6 border-2 border-white border-opacity-30">
               <div className="text-center mb-4">
                 <p className="text-sm text-gray-300 mb-2">{username}'s Final Score</p>

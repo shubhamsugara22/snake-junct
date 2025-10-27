@@ -1203,3 +1203,413 @@ All game functionality remains exactly the same - just with dramatically improve
 - Gradient text using bg-clip-text
 - Conditional styling based on rank
 - Efficient timestamp calculations
+
+
+## Version 2.6.0 - Underwater Level (Phaser Test) 🌊 (EXPERIMENTAL)
+
+### New Feature: Underwater Level
+**Note: This is an experimental test level using Phaser.js. Can be removed later.**
+
+- **🌊 Complete Underwater Environment**
+  - Deep ocean gradient background (dark blue to cyan)
+  - Animated rising bubbles using particle system
+  - Underwater physics and movement
+
+### Enemies (Replacing Snakes)
+- **🐍 Electric Eels**: Slithering enemies that move horizontally
+  - Green segmented bodies with red eyes
+  - Move at 150 speed from right to left
+  - Award 10 points when passed
+
+- **🦀 Crabs**: Falling enemies from above
+  - Orange/red colored with claws
+  - Drop from top with gravity
+  - Bounce on impact
+  - Award 5 points when avoided
+
+- **🦈 Sharks**: Large predators
+  - Gray bodies with fins and teeth
+  - Move horizontally at 200 speed
+  - Larger scale (1.2x) for intimidation
+  - Award 20 points when passed
+
+### Obstacles (Replacing Pillars)
+- **🪸 Pink Corals**: Static underwater plants
+  - Pink/magenta colored with organic shapes
+  - Positioned on ocean floor
+  - Player collides with them (solid obstacles)
+  - 1.5x scale for visibility
+
+### Gameplay Features
+- **Controls**: SPACE, UP ARROW, or TAP to swim upward
+- **Physics**: Arcade physics with gravity
+- **Scoring**: Points awarded for avoiding enemies
+- **Game Over**: Collision with any enemy ends the game
+- **Respawning**: Enemies respawn when off-screen
+
+### Visual Effects
+- Bubble particle emitter (continuous rising bubbles)
+- Underwater gradient background
+- Smooth sprite-based graphics
+- Score display with player name
+- Game over modal with retry option
+
+### Technical Implementation
+- Built with Phaser 3.90.0
+- Arcade physics engine
+- Procedural texture generation for all sprites
+- Dynamic enemy spawning system
+- Collision detection between player and enemies
+- Exit button to return to main game
+
+### UI Elements
+- Cyan-themed interface matching underwater aesthetic
+- "🌊 Underwater Level (Phaser Test) 🌊" header
+- Exit button to return to main menu
+- Control instructions panel
+- Game over screen with final score
+- Retry and exit options
+
+### Access
+- Click "🌊 Underwater (Test)" button in main menu
+- Clearly marked as experimental/test feature
+- Easy to toggle on/off or remove completely
+
+### Future Considerations
+- This level demonstrates Phaser integration
+- Can be expanded with more features
+- May be removed if Phaser isn't needed
+- Serves as proof-of-concept for alternative rendering
+
+
+## Version 2.6.1 - Enhanced Underwater Graphics (2024)
+
+### Major Visual Overhaul
+Complete redesign of underwater level with realistic, detailed graphics
+
+### Environment Enhancements
+- **Multi-layer Ocean Background**
+  - Deep gradient (dark blue to cyan)
+  - Caustic light effects (sunlight through water)
+  - Depth perception with layered colors
+
+- **Animated Seaweed Forest**
+  - 10 swaying seaweed plants
+  - Organic movement animation
+  - Semi-transparent for depth
+
+- **Rocky Ocean Floor**
+  - 15 detailed rocks with gradients
+  - Varied sizes and positions
+  - Realistic stone textures
+
+- **Background Fish School**
+  - 20 small fish swimming
+  - Animated movement patterns
+  - Semi-transparent for depth effect
+
+### Particle Effects
+- **Realistic Bubbles**
+  - Gradient shading
+  - Outline strokes
+  - Rising animation with fade
+
+- **Plankton Particles**
+  - Glowing green particles
+  - Random floating movement
+  - Adds life to water
+
+### Detailed Creatures
+
+**🐠 Player (Tropical Fish)**
+- Orange gradient body with darker belly
+- Detailed tail and dorsal fins
+- White stripes pattern
+- Realistic eye with pupil and highlight
+- Outline for definition
+- 1.5x scale for visibility
+
+**🐍 Electric Eel**
+- 10 segmented body with wave pattern
+- Dark green gradient with spots
+- Glowing yellow/red eyes
+- Sharp white teeth
+- Dorsal and ventral fins
+- Realistic head shape
+
+**🦀 Detailed Crab**
+- Orange/red gradient shell
+- Shell pattern with spots
+- 8 articulated legs (4 per side)
+- Large detailed claws with pincers
+- Eyes on stalks
+- Realistic proportions
+
+**🦈 Realistic Shark**
+- Gray gradient body with lighter belly
+- Detailed tail, dorsal, and pectoral fins
+- Gill slits
+- Black eye with white highlight
+- Multiple rows of white teeth
+- Pointed nose
+- Larger scale (intimidating)
+
+**🪸 Coral Reef**
+- Pink/magenta gradient trunk
+- Multiple branching structures
+- Organic polyp shapes
+- Varied colors (4 shades)
+- Texture details with white spots
+- Realistic reef appearance
+
+### Technical Improvements
+- All sprites use gradient fills
+- Multiple color layers for depth
+- Detailed outlines and highlights
+- Organic shapes and patterns
+- Realistic proportions
+- Enhanced shadows and lighting
+- Smooth animations
+- Performance optimized
+
+### Visual Sophistication
+- No more flat colors
+- Detailed textures on all elements
+- Realistic creature anatomy
+- Environmental depth layers
+- Professional game graphics quality
+- Immersive underwater atmosphere
+
+
+## Version 2.7.0 - Removed Underwater Level (2024)
+
+### Changes
+- **Removed Underwater Level (Phaser Test)**
+  - Deleted UnderwaterLevel.tsx component
+  - Removed underwater level button from main menu
+  - Reverted to "Custom Level - Coming Soon" placeholder
+  - Cleaned up all underwater level imports and state
+
+### Reason
+- Experimental feature that didn't meet quality standards
+- Phaser integration test completed
+- Focus back on core Canvas 2D game experience
+
+
+## Version 2.8.0 - Halloween Fire Power-Up & Zombies 🔥🧟 (2024)
+
+### HALLOWEEN EVENT ONLY - New Features
+
+**🔥 Fire Power-Up (Rare)**
+- **Spawn Rate**: 30% chance per game (rare drop)
+- **Duration**: 10 seconds of fire power
+- **Effect**: Kills flying obstacles (witches, pumpkins, snakes) on contact
+- **Points**: 10 points for each kill
+- **Visual Effects**:
+  - Animated flame icon with orange/red/gold gradient
+  - Sparkles around the power-up
+  - Fire ring around player when active
+  - 8 flame particles orbiting the player
+  - Orange glow effect
+- **Sound**: Fire crackling sound on pickup, kill sound on each enemy destroyed
+- **UI Card**: Orange/red gradient card with countdown timer and progress bar
+
+**🧟 Zombie Obstacles**
+- **Location**: Walking on ground in Halloween background
+- **Count**: 3 zombies at different positions
+- **Animation**: Swaying movement and reaching arms
+- **Visual Details**:
+  - Green/gray zombie bodies with torn clothes
+  - Glowing red eyes with shadow effect
+  - Black mouth
+  - Animated arms reaching out
+  - Walking legs
+  - Atmospheric fog around them
+
+### Gameplay Mechanics
+- Fire power-up spawns far into the level (1000-2500px from start)
+- Only appears during Halloween event
+- Player becomes invincible to flying enemies while fire is active
+- Enemies are destroyed on contact (not just avoided)
+- Score increases by 10 for each kill
+- Fire and shield can be active simultaneously
+- Snakes respawn after being killed
+
+### Technical Implementation
+- Added `fireActive` and `fireEndTime` to GameState
+- PowerUp type extended to include 'fire'
+- Snake update logic uses filter() to remove killed snakes
+- Fire collision detection separate from shield logic
+- Animated flame rendering with multiple gradient layers
+- Particle system for fire effect around player
+
+### Sound Effects
+- `playFireSound()`: Crackling fire on power-up pickup
+- `playKillSound()`: High-pitched sound when enemy is destroyed
+
+### UI Enhancements
+- Fire power-up card appears when active
+- Orange/red gradient theme
+- 10-second countdown timer
+- Animated progress bar
+- Pulsing glow effect
+- Slide-in animation
+
+### Balance
+- Fire is rarer than shield (30% vs 100% spawn)
+- Shorter duration (10s vs 20s)
+- Encourages aggressive play style
+- Risk/reward: get close to enemies for kills
+- Only active during Halloween event
+
+
+## Version 2.9.0 - Halloween Skins & Candy Power-Up 🎃👻🍬 (2024)
+
+### HALLOWEEN EVENT - New Character Skins
+
+**🧙 Witch Skin**
+- Purple gradient chibi with witch hat
+- Black pointed hat with gold buckle
+- Hat brim detail
+- Available in character selection
+
+**👻 Ghost Skin**
+- White/lavender transparent chibi
+- 80% opacity for ghostly effect
+- Wavy ghost tail at bottom
+- Spooky glow effect around character
+- Semi-transparent appearance
+
+### HALLOWEEN EVENT - Candy Power-Up (Super Rare!)
+
+**🍬 Candy Power-Up**
+- **Spawn Rate**: 10% chance (super rare!)
+- **Duration**: 10 seconds
+- **Effect**: Activates BOTH fire AND shield simultaneously!
+- **Visual**:
+  - Pink/gold striped candy wrapper
+  - Twisted wrapper ends
+  - Rainbow glow effect
+  - Animated sparkles (3 sparkles)
+- **Sound**: Power-up sound + fire sound combo
+
+### Screenshot Feature
+
+**📸 5-Second Delay on Game Over**
+- Game freezes for 5 seconds when player dies
+- "Screenshot Time!" message appears
+- Countdown timer shows remaining seconds
+- Allows players to capture final moment for screenshots/GIFs
+- Game over menu appears after 5 seconds
+- Perfect for sharing epic fails or high scores
+
+### UI Enhancements
+- Character selection now shows 7 skins (5 regular + 2 Halloween)
+- Witch and ghost skins have special visual effects
+- Candy power-up activates both fire and shield cards simultaneously
+- Screenshot countdown overlay with fade-in animation
+
+### Technical Implementation
+- Added `showGameOverUI` state for delayed menu
+- useEffect hook manages 5-second timer
+- Witch hat rendered on top of character
+- Ghost transparency and tail effects
+- Candy combines both power-up effects
+- Special skin rendering in player draw function
+
+### Balance
+- Candy is rarest power-up (10% spawn chance)
+- Spawns very far into level (1500-3500px)
+- Shorter duration than individual power-ups (10s vs 20s shield)
+- Ultimate power-up for skilled players who survive long enough
+- Only available during Halloween event
+
+
+## Version 2.9.1 - Improved Halloween Skins (2024)
+
+### Enhanced Witch Skin 🧙
+- **Larger, more visible witch hat**
+  - Bigger cone (18px tall instead of 10px)
+  - Wider brim (28px wide)
+  - Purple outline for definition
+  - Gold buckle with border
+  - Purple star decorations on hat
+- **Drawn on top of character** (rendering order fixed)
+- **Much more distinctive** and clearly visible
+
+### Enhanced Ghost Skin 👻
+- **More transparent** (70% opacity instead of 80%)
+- **Improved wavy tail** with 3 pronounced waves
+- **Pulsing ethereal glow** (animated intensity)
+- **Larger glow radius** (15px blur)
+- **"Boo" mouth** (open O shape)
+- **Floating sparkles** (2 animated sparkles that move up/down)
+- **More ghostly appearance** overall
+
+### Visual Improvements
+- Witch hat now clearly visible above character
+- Ghost has animated pulsing glow effect
+- Both skins are much more distinctive
+- Better contrast and visibility
+- Professional Halloween aesthetic
+
+
+## Version 2.10.0 - Complete Halloween Atmosphere 🎃👻🎵 (October 27, 2025)
+
+### HALLOWEEN EVENT - All 5 Spooky Features
+
+**1. 🧙 Light Brown Witch Hat**
+- Changed from dark purple to light brown (#8B4513)
+- Much more visible against character
+- Gold buckle and stars for decoration
+- Better contrast and visibility
+
+**2. 👻 Ghost as Full Character Replacement**
+- Complete white ghost character (not just a skin)
+- White sheet with wavy bottom edge
+- Black hollow eyes and "OOO" mouth
+- Ethereal pulsing glow effect
+- 3 floating sparkles around ghost
+- Semi-transparent appearance
+- Completely replaces normal chibi rendering
+
+**3. 🎵 Spooky Background Music**
+- Continuous haunting melody during Halloween games
+- 8-note spooky tune using triangle waves
+- Auto-starts when game begins
+- Stops when game ends or player dies
+- Creates atmospheric tension throughout gameplay
+
+**4. 😈 Evil Laughter on Death**
+- 6-note descending evil laugh sound effect
+- Menacing sawtooth wave
+- Replaces normal collision sound during Halloween
+- Plays immediately when player dies
+
+**5. 🩸 Bloody Death Messages**
+- **During 5-second delay:**
+  - "💀 YOU HAVE FALLEN 💀" (pulsing animation)
+  - "📸 Capture your doom..."
+  - "The darkness awaits..."
+- **After 5-second delay (Game Over):**
+  - "💀 GAME OVER 💀" (large, bold)
+  - "🩸 I AM COMING FOR YOU!!! 🩸" (bouncing animation)
+  - "The spirits are not pleased..."
+- Red/orange horror color scheme
+- Darker background (90% opacity)
+
+### Technical Implementation
+- All features controlled by `HALLOWEEN_EVENT_ACTIVE` flag
+- `startSpookyMusic()` and `stopSpookyMusic()` functions
+- Music controlled by useEffect monitoring game state
+- `playEvilLaugh()` with 6-stage descending sound
+- Ghost character completely replaces normal rendering
+- Conditional UI messages based on Halloween event
+- Enhanced visual effects and animations
+
+### Atmosphere Enhancement
+- Immersive Halloween experience from start to finish
+- Continuous audio feedback throughout gameplay
+- Dramatic two-stage death sequence
+- Professional horror game atmosphere
+- Maintains playability while adding spooky elements

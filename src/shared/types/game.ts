@@ -26,7 +26,7 @@ export type Player = {
 
 export type PowerUp = {
   id: string;
-  type: 'shield';
+  type: 'shield' | 'fire' | 'candy';
   position: Position;
   collected: boolean;
 };
@@ -51,6 +51,8 @@ export type GameState = {
   isPlaying: boolean;
   shieldActive: boolean;
   shieldEndTime: number;
+  fireActive: boolean;
+  fireEndTime: number;
 };
 
 export type GameConfig = {

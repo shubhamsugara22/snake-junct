@@ -70,7 +70,9 @@ export const App = () => {
                 </div>
               </button>
             </div>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 order-1 sm:order-2">Snake Dodge</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 order-1 sm:order-2">
+              Snake Dodge
+            </h1>
             <div className="text-center sm:text-right order-3">
               <div className="text-xs sm:text-sm text-gray-600">High Score</div>
               <div className="text-sm sm:text-lg font-bold text-orange-600">{highScore}</div>

@@ -7,6 +7,7 @@ inclusion: manual
 ## Manual Testing Checklist
 
 ### Core Gameplay
+
 - [ ] Character jumps on space/click/tap
 - [ ] Gravity and physics feel natural
 - [ ] Collision detection is accurate
@@ -14,6 +15,7 @@ inclusion: manual
 - [ ] Game over triggers properly
 
 ### ML Adaptive Difficulty
+
 - [ ] Skill level displays and updates
 - [ ] Difficulty adjusts after multiple games
 - [ ] Beginners get easier gameplay
@@ -21,6 +23,7 @@ inclusion: manual
 - [ ] Profile persists across sessions
 
 ### Visual Elements
+
 - [ ] All themes render correctly (beach, night, retro, desert, halloween)
 - [ ] Coiling snakes are clearly visible
 - [ ] Character skins display properly
@@ -28,6 +31,7 @@ inclusion: manual
 - [ ] Animations are smooth (60 FPS)
 
 ### Sound Effects
+
 - [ ] Jump sound plays
 - [ ] Collision sound plays
 - [ ] Point sound plays
@@ -35,24 +39,28 @@ inclusion: manual
 - [ ] Halloween sounds work (if event active)
 
 ### Event System
+
 - [ ] Halloween event toggles correctly
 - [ ] Witches and pumpkins render properly
 - [ ] Event UI updates display
 - [ ] Can disable event with flag
 
 ### Cross-Browser Testing
+
 - [ ] Chrome/Edge
 - [ ] Firefox
 - [ ] Safari
 - [ ] Mobile browsers
 
 ### Performance Testing
+
 - [ ] Maintains 60 FPS during gameplay
 - [ ] No memory leaks during extended play
 - [ ] LocalStorage doesn't exceed limits
 - [ ] Canvas rendering is optimized
 
 ## Automated Testing (Future)
+
 - Unit tests for ML algorithm
 - Collision detection tests
 - Profile persistence tests

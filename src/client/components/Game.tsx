@@ -1548,85 +1548,116 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.fill();
       
     } else if (selectedSkin === 'ghost') {
-      // GHOST CHARACTER - Complete replacement, not just a skin!
-      // Clear the normal character and draw ghost instead
-      ctx.clearRect(playerX - playerRadius - 10, playerY - playerRadius - 10, playerRadius * 2 + 20, playerRadius * 2 + 20);
+      // HALLOWEEN EVENT - Ghost chibi character (similar to normal chibi but ghostly)
+      // Override the normal body with ghost styling
       
-      // Ghost body (white sheet)
+      // Ghost body - semi-transparent white with ethereal glow
       ctx.globalAlpha = 0.85;
-      ctx.fillStyle = '#FFFFFF';
       ctx.shadowColor = '#E6E6FA';
       ctx.shadowBlur = 15;
       
-      // Main ghost body
+      const ghostGradient = ctx.createRadialGradient(
+        playerX - 2,
+        playerY - 2,
+        0,
+        playerX,
+        playerY,
+        playerRadius
+      );
+      ghostGradient.addColorStop(0, '#FFFFFF');
+      ghostGradient.addColorStop(0.7, '#F0F8FF');
+      ghostGradient.addColorStop(1, '#E6E6FA');
+      
+      ctx.fillStyle = ghostGradient;
+      ctx.strokeStyle = '#E6E6FA';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(playerX, playerY - 2, playerRadius + 2, Math.PI, 0, true);
-      ctx.lineTo(playerX + playerRadius + 2, playerY + playerRadius);
-      
-      // Wavy bottom with 3 points
-      ctx.quadraticCurveTo(
-        playerX + playerRadius * 0.66, 
-        playerY + playerRadius + 6, 
-        playerX + playerRadius * 0.33, 
-        playerY + playerRadius
-      );
-      ctx.quadraticCurveTo(
-        playerX, 
-        playerY + playerRadius + 6, 
-        playerX - playerRadius * 0.33, 
-        playerY + playerRadius
-      );
-      ctx.quadraticCurveTo(
-        playerX - playerRadius * 0.66, 
-        playerY + playerRadius + 6, 
-        playerX - playerRadius - 2, 
-        playerY + playerRadius
-      );
-      
-      ctx.lineTo(playerX - playerRadius - 2, playerY - 2);
-      ctx.closePath();
+      ctx.arc(playerX, playerY, playerRadius, 0, 2 * Math.PI);
       ctx.fill();
+      ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
       
-      // Ghost eyes (black hollow)
-      ctx.fillStyle = '#000000';
+      // Pulsing ethereal aura
+      const glowIntensity = 0.2 + Math.sin(Date.now() * 0.003) * 0.15;
+      ctx.globalAlpha = glowIntensity;
+      ctx.fillStyle = '#E6E6FA';
       ctx.beginPath();
-      ctx.ellipse(playerX - 4, playerY - 2, 2.5, 4, 0, 0, 2 * Math.PI);
+      ctx.arc(playerX, playerY, playerRadius + 4, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      // Ghost eyes - hollow and spooky but still cute
+      ctx.fillStyle = '#4B0082';
+      ctx.beginPath();
+      ctx.arc(playerX - 3, playerY - 2, 3, 0, 2 * Math.PI);
       ctx.fill();
       ctx.beginPath();
-      ctx.ellipse(playerX + 4, playerY - 2, 2.5, 4, 0, 0, 2 * Math.PI);
+      ctx.arc(playerX + 3, playerY - 2, 3, 0, 2 * Math.PI);
       ctx.fill();
       
-      // Ghost "OOO" mouth
+      // Eye glow
+      ctx.fillStyle = '#9370DB';
+      ctx.globalAlpha = 0.6;
       ctx.beginPath();
-      ctx.ellipse(playerX, playerY + 4, 2, 3, 0, 0, 2 * Math.PI);
+      ctx.arc(playerX - 3, playerY - 2, 4, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + 3, playerY - 2, 4, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      // Eye sparkles (ghostly)
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(playerX - 2, playerY - 3, 0.8, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + 4, playerY - 3, 0.8, 0, 2 * Math.PI);
       ctx.fill();
       
-      // Ethereal glow (pulsing)
-      const glowIntensity = 0.3 + Math.sin(Date.now() * 0.003) * 0.2;
-      ctx.shadowColor = '#E6E6FA';
-      ctx.shadowBlur = 20;
-      ctx.fillStyle = `rgba(230, 230, 250, ${glowIntensity})`;
+      // Cute ghost smile (wavy)
+      ctx.strokeStyle = '#9370DB';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(playerX, playerY, playerRadius + 6, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.shadowBlur = 0;
+      ctx.moveTo(playerX - 4, playerY + 3);
+      ctx.quadraticCurveTo(playerX, playerY + 5, playerX + 4, playerY + 3);
+      ctx.stroke();
       
-      // Floating sparkles
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      // Ghostly arms (semi-transparent)
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = '#E6E6FA';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(playerX - playerRadius + 1, playerY);
+      ctx.lineTo(playerX - playerRadius - 3, playerY - 3);
+      ctx.moveTo(playerX + playerRadius - 1, playerY);
+      ctx.lineTo(playerX + playerRadius + 3, playerY - 3);
+      ctx.stroke();
+      
+      // Ghostly hands
+      ctx.fillStyle = '#F0F8FF';
+      ctx.beginPath();
+      ctx.arc(playerX - playerRadius - 3, playerY - 3, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + playerRadius + 3, playerY - 3, 1.5, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      
+      // Floating sparkles around ghost
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       const floatOffset = Math.sin(Date.now() * 0.005) * 3;
       ctx.beginPath();
-      ctx.arc(playerX - 14, playerY - 8 + floatOffset, 2, 0, 2 * Math.PI);
+      ctx.arc(playerX - 14, playerY - 8 + floatOffset, 1.5, 0, 2 * Math.PI);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(playerX + 14, playerY - 8 - floatOffset, 2, 0, 2 * Math.PI);
+      ctx.arc(playerX + 14, playerY - 8 - floatOffset, 1.5, 0, 2 * Math.PI);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(playerX, playerY - 15 + floatOffset * 0.5, 1.5, 0, 2 * Math.PI);
+      ctx.arc(playerX, playerY - 15 + floatOffset * 0.5, 1, 0, 2 * Math.PI);
       ctx.fill();
-      
-      return; // Skip normal character rendering for ghost
     }
 
     // Draw snakes (or Halloween creatures)

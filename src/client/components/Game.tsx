@@ -6,7 +6,88 @@ import {
   Snake,
   Obstacle,
   GameConfig,
+  Projectile,
+  BossType,
+  Boss,
+  BOSS_CONFIGS,
+  BOSS_BATTLES_ENABLED,
 } from '../../shared/types/game';
+
+// ProjectilePool class for performance optimization
+class ProjectilePool {
+  private pool: Projectile[] = [];
+  private maxSize = 20;
+
+  acquire(
+    type: 'inkBlob' | 'pumpkin',
+    position: Position,
+    velocity: Position,
+    size: number
+  ): Projectile {
+    let projectile = this.pool.find((p) => !p.active);
+
+    if (!projectile) {
+      projectile = {
+        id: Math.random().toString(36).substring(2, 9),
+        type,
+        position: { ...position },
+        velocity: { ...velocity },
+        size,
+        active: true,
+      };
+      this.pool.push(projectile);
+    } else {
+      projectile.type = type;
+      projectile.position = { ...position };
+      projectile.velocity = { ...velocity };
+      projectile.size = size;
+      projectile.active = true;
+    }
+
+    return projectile;
+  }
+
+  release(projectile: Projectile): void {
+    projectile.active = false;
+  }
+
+  getActive(): Projectile[] {
+    return this.pool.filter((p) => p.active);
+  }
+}
+
+// Boss trigger and lifecycle management functions
+const checkBossTrigger = (score: number, defeatedBosses: BossType[]): BossType | null => {
+  // Check for Bat Boss at score 250 (higher score first)
+  if (score >= 250 && !defeatedBosses.includes('bat')) {
+    return 'bat';
+  }
+  // Check for Octopus Boss at score 100
+  if (score >= 100 && !defeatedBosses.includes('octopus')) {
+    return 'octopus';
+  }
+  return null;
+};
+
+const shouldTriggerBoss = (
+  score: number,
+  halloweenActive: boolean,
+  bossesEnabled: boolean,
+  defeatedBosses: BossType[]
+): BossType | null => {
+  // Check feature flags
+  if (!bossesEnabled || !halloweenActive) {
+    return null;
+  }
+  
+  // Call checkBossTrigger with error handling
+  try {
+    return checkBossTrigger(score, defeatedBosses);
+  } catch (error) {
+    console.error('Error checking boss trigger:', error);
+    return null;
+  }
+};
 
 // Custom CSS animations for interactive scorecard
 const scorecardStyles = `
@@ -282,7 +363,7 @@ const startSpookyMusic = () => {
 };
 
 const stopSpookyMusic = () => {
-  if (spookyMusicInterval) {
+  if (spookyMusicInterval !== undefined) {
     window.clearInterval(spookyMusicInterval);
     spookyMusicInterval = undefined;
   }
@@ -296,6 +377,7 @@ type GameProps = {
 export const Game = ({ username, onScoreUpdate }: GameProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameLoopRef = useRef<number | undefined>(undefined);
+  const projectilePoolRef = useRef<ProjectilePool>(new ProjectilePool());
   const [selectedSkin, setSelectedSkin] = useState<CharacterSkin>('orange');
 
   // ML tracking refs
@@ -325,6 +407,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     shieldEndTime: 0,
     fireActive: false,
     fireEndTime: 0,
+    bossState: {
+      currentBoss: null,
+      bossEncounterActive: false,
+      bossTransitionPhase: null,
+      transitionStartTime: 0,
+      projectiles: [],
+      defeatedBosses: [],
+    },
   });
 
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>('beach');
@@ -546,6 +636,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         shieldEndTime: 0,
         fireActive: false,
         fireEndTime: 0,
+        bossState: {
+          currentBoss: null,
+          bossEncounterActive: false,
+          bossTransitionPhase: null,
+          transitionStartTime: 0,
+          projectiles: [],
+          defeatedBosses: [],
+        },
       });
     },
     [generateSnake, generateObstacle, selectedSkin, username]
@@ -611,6 +709,50 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       if (!prevState.isPlaying || prevState.isGameOver) return prevState;
 
       const newState = { ...prevState };
+
+      // Check for boss trigger when not in boss encounter
+      if (!newState.bossState.bossEncounterActive && !newState.isGameOver) {
+        const bossType = shouldTriggerBoss(
+          newState.score,
+          HALLOWEEN_EVENT_ACTIVE,
+          BOSS_BATTLES_ENABLED,
+          newState.bossState.defeatedBosses
+        );
+        
+        if (bossType) {
+          // Start boss encounter
+          newState.bossState.bossEncounterActive = true;
+          newState.bossState.bossTransitionPhase = 'entrance';
+          newState.bossState.transitionStartTime = Date.now();
+          
+          const config = BOSS_CONFIGS[bossType];
+          
+          // Apply skill-based health scaling
+          const adjustedHealth = 
+            playerProfile.skillLevel > 0.7 
+              ? config.health + (bossType === 'octopus' ? 2 : 3)
+              : config.health;
+          
+          // Create boss instance
+          newState.bossState.currentBoss = {
+            id: Math.random().toString(36).substring(2, 9),
+            type: bossType,
+            position: { ...config.position },
+            health: adjustedHealth,
+            maxHealth: adjustedHealth,
+            isActive: false,
+            lastProjectileTime: 0,
+            animationPhase: 0,
+            hitFlashTime: 0,
+          };
+          
+          // Clear normal enemies (snakes and obstacles)
+          newState.snakes = [];
+          newState.obstacles = [];
+          
+          console.log(`Boss encounter started: ${bossType} at score ${newState.score}`);
+        }
+      }
 
       // Check if shield expired
       if (newState.shieldActive && Date.now() > newState.shieldEndTime) {
@@ -856,13 +998,13 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     if (gameState.isPlaying) {
       gameLoopRef.current = window.setInterval(updateGame, 16);
     } else {
-      if (gameLoopRef.current) {
+      if (gameLoopRef.current !== undefined) {
         window.clearInterval(gameLoopRef.current);
       }
     }
 
     return () => {
-      if (gameLoopRef.current) {
+      if (gameLoopRef.current !== undefined) {
         window.clearInterval(gameLoopRef.current);
       }
     };

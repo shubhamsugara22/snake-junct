@@ -6,6 +6,7 @@
 This hook helps maintain the CHANGELOG by reminding you to document new features and changes.
 
 ## Configuration
+
 ```json
 {
   "name": "Update Changelog",
@@ -16,4 +17,5 @@ This hook helps maintain the CHANGELOG by reminding you to document new features
 ```
 
 ## Usage
+
 Click the hook button in the Agent Hooks panel when you've completed a feature or made significant changes.

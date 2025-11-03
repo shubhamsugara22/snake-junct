@@ -79,7 +79,7 @@ const shouldTriggerBoss = (
   if (!bossesEnabled || !halloweenActive) {
     return null;
   }
-  
+
   // Call checkBossTrigger with error handling
   try {
     return checkBossTrigger(score, defeatedBosses);
@@ -93,37 +93,32 @@ const shouldTriggerBoss = (
 const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
   const config = BOSS_CONFIGS.octopus;
   const { x, y } = boss.position;
-  
+
   // Flash white when hit
   const isFlashing = time - boss.hitFlashTime < 200;
-  
+
   // Show damage number when hit
   if (isFlashing) {
     renderDamageNumber(ctx, x, y - 50, time - boss.hitFlashTime);
   }
-  
+
   // Draw 8 tentacles with wave animation
   for (let i = 0; i < 8; i++) {
     const angle = (i / 8) * Math.PI * 2 + boss.animationPhase;
     const tentacleLength = 40;
     const wave = Math.sin(time * 0.005 + i) * 5;
-    
+
     ctx.strokeStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
     ctx.lineWidth = 8;
     ctx.lineCap = 'round';
-    
+
     ctx.beginPath();
     ctx.moveTo(x, y);
     const endX = x + Math.cos(angle) * (tentacleLength + wave);
     const endY = y + Math.sin(angle) * (tentacleLength + wave);
-    ctx.quadraticCurveTo(
-      x + Math.cos(angle) * 20,
-      y + Math.sin(angle) * 20 + wave,
-      endX,
-      endY
-    );
+    ctx.quadraticCurveTo(x + Math.cos(angle) * 20, y + Math.sin(angle) * 20 + wave, endX, endY);
     ctx.stroke();
-    
+
     // Tentacle sucker details
     ctx.fillStyle = config.colors.secondary;
     for (let j = 1; j <= 3; j++) {
@@ -134,22 +129,22 @@ const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
       ctx.fill();
     }
   }
-  
+
   // Draw main body with glow
   ctx.shadowColor = config.colors.glow;
   ctx.shadowBlur = 20;
-  
+
   const gradient = ctx.createRadialGradient(x - 10, y - 10, 0, x, y, 40);
   gradient.addColorStop(0, config.colors.secondary);
   gradient.addColorStop(0.5, config.colors.primary);
   gradient.addColorStop(1, '#1a0033');
-  
+
   ctx.fillStyle = isFlashing ? '#FFFFFF' : gradient;
   ctx.beginPath();
   ctx.arc(x, y, 40, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  
+
   // Draw eyes
   ctx.fillStyle = '#FF0000';
   ctx.shadowColor = '#FF0000';
@@ -161,7 +156,7 @@ const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
   ctx.arc(x + 12, y - 8, 6, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  
+
   // Eye pupils
   ctx.fillStyle = '#000000';
   ctx.beginPath();
@@ -173,64 +168,80 @@ const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
 };
 
 // Octopus Boss update function
-const updateOctopusBoss = (boss: Boss, time: number, playerY: number): void => {
+const updateOctopusBoss = (boss: Boss, time: number, playerY: number): Boss => {
   // Rotate tentacles slowly
-  boss.animationPhase += 0.02;
-  
-  // Keep X position fixed at center-right, but move Y toward player
-  boss.position.x = 500;
-  
-  // Smoothly move toward player's Y position
-  const targetY = playerY;
-  const dy = targetY - boss.position.y;
-  boss.position.y += dy * 0.02; // Smooth following
+  const newAnimationPhase = boss.animationPhase + 0.02;
+
+  const t = time * 0.001; // Convert to seconds
+
+  // INDEPENDENT MOVEMENT - Does NOT follow player
+  // Horizontal: Wide oscillation from extreme left to extreme right
+  const centerX = GAME_CONFIG.gridWidth / 2; // Center of screen (300)
+  const horizontalRange = 220; // Move from ~80 to ~520 (almost full screen width)
+  const newX = centerX + Math.sin(t * 0.5) * horizontalRange; // Slow horizontal wave
+
+  // Vertical: Independent sine wave pattern
+  const centerY = GAME_CONFIG.gridHeight / 2;
+  const verticalRange = 120; // Larger vertical range too
+  const newY = centerY + Math.sin(t * 0.7) * verticalRange; // Different frequency for variety
+
+  return {
+    ...boss,
+    animationPhase: newAnimationPhase,
+    position: { x: newX, y: newY },
+  };
 };
 
 // Octopus Boss projectile throwing function
 const octopusThrowProjectile = (
-  boss: Boss, 
-  playerPos: Position, 
+  boss: Boss,
+  playerPos: Position,
   pool: ProjectilePool,
   skillLevel: number
 ): Projectile | null => {
   const config = BOSS_CONFIGS.octopus;
   const interval = skillLevel < 0.3 ? 2000 : config.projectileInterval;
-  
+
   if (Date.now() - boss.lastProjectileTime < interval) {
     return null;
   }
-  
+
   boss.lastProjectileTime = Date.now();
-  
+
   // Calculate trajectory toward player
   const dx = playerPos.x - boss.position.x;
   const dy = playerPos.y - boss.position.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  
+
   const velocity = {
     x: (dx / distance) * config.projectileSpeed,
     y: (dy / distance) * config.projectileSpeed,
   };
-  
+
   return pool.acquire('inkBlob', boss.position, velocity, config.projectileSize);
 };
 
 // Render damage numbers
-const renderDamageNumber = (ctx: CanvasRenderingContext2D, x: number, y: number, elapsedTime: number) => {
+const renderDamageNumber = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  elapsedTime: number
+) => {
   const duration = 800;
   const progress = Math.min(elapsedTime / duration, 1);
-  
+
   // Float up and fade out
   const offsetY = progress * 30;
   const alpha = 1 - progress;
-  
+
   ctx.globalAlpha = alpha;
   ctx.fillStyle = '#FF0000';
   ctx.strokeStyle = '#FFFFFF';
   ctx.lineWidth = 3;
   ctx.font = 'bold 24px Arial';
   ctx.textAlign = 'center';
-  
+
   ctx.strokeText('-1', x, y - offsetY);
   ctx.fillText('-1', x, y - offsetY);
   ctx.globalAlpha = 1;
@@ -240,23 +251,23 @@ const renderDamageNumber = (ctx: CanvasRenderingContext2D, x: number, y: number,
 const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
   const config = BOSS_CONFIGS.bat;
   const { x, y } = boss.position;
-  
+
   // Flash white when hit
   const isFlashing = time - boss.hitFlashTime < 200;
-  
+
   // Show damage number when hit
   if (isFlashing) {
     renderDamageNumber(ctx, x, y - 40, time - boss.hitFlashTime);
   }
-  
+
   // Animated wing flapping
   const wingFlap = Math.sin(time * 0.01) * 15;
-  
+
   // Draw wings with flapping motion
   ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
   ctx.strokeStyle = config.colors.secondary;
   ctx.lineWidth = 2;
-  
+
   // Left wing
   ctx.beginPath();
   ctx.moveTo(x - 10, y);
@@ -265,7 +276,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-  
+
   // Wing detail lines (left)
   ctx.strokeStyle = '#333333';
   ctx.lineWidth = 1;
@@ -275,7 +286,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
     ctx.lineTo(x - 25 - i * 5, y - 10 + wingFlap + i * 3);
     ctx.stroke();
   }
-  
+
   // Right wing
   ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
   ctx.strokeStyle = config.colors.secondary;
@@ -287,7 +298,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-  
+
   // Wing detail lines (right)
   ctx.strokeStyle = '#333333';
   ctx.lineWidth = 1;
@@ -297,7 +308,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
     ctx.lineTo(x + 25 + i * 5, y - 10 + wingFlap + i * 3);
     ctx.stroke();
   }
-  
+
   // Draw body
   ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
   ctx.beginPath();
@@ -306,14 +317,14 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.strokeStyle = config.colors.secondary;
   ctx.lineWidth = 2;
   ctx.stroke();
-  
+
   // Draw head
   ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
   ctx.beginPath();
   ctx.arc(x, y - 15, 10, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  
+
   // Draw pointed ears
   ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
   ctx.beginPath();
@@ -323,7 +334,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-  
+
   ctx.beginPath();
   ctx.moveTo(x + 8, y - 20);
   ctx.lineTo(x + 5, y - 28);
@@ -331,7 +342,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
-  
+
   // Draw glowing red eyes
   ctx.fillStyle = config.colors.secondary;
   ctx.shadowColor = config.colors.glow;
@@ -343,7 +354,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.arc(x + 4, y - 16, 3, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  
+
   // Draw white fangs
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
@@ -352,7 +363,7 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.lineTo(x - 1, y - 10);
   ctx.closePath();
   ctx.fill();
-  
+
   ctx.beginPath();
   ctx.moveTo(x + 3, y - 10);
   ctx.lineTo(x + 2, y - 6);
@@ -362,21 +373,29 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
 };
 
 // Bat Boss update function
-const updateBatBoss = (boss: Boss, time: number, playerY: number): void => {
-  // Figure-eight pattern using Lissajous curve, but centered on player's Y
+const updateBatBoss = (boss: Boss, time: number, playerY: number): Boss => {
+  // INDEPENDENT MOVEMENT - Does NOT follow player
+  // Figure-eight pattern using Lissajous curve
   const t = time * 0.001; // Convert to seconds
-  const centerX = 350;
-  const radiusX = 100;
-  const radiusY = 60;
-  
-  boss.position.x = centerX + radiusX * Math.sin(t);
-  
-  // Follow player Y position with figure-eight offset
-  const targetY = playerY + radiusY * Math.sin(2 * t);
-  boss.position.y = targetY;
-  
+
+  // Fixed center position
+  const centerX = GAME_CONFIG.gridWidth / 2; // Center of screen
+  const centerY = GAME_CONFIG.gridHeight / 2;
+  const radiusX = 200; // Wider horizontal movement (100 to 500)
+  const radiusY = 100; // Larger vertical movement
+
+  // Pure figure-eight pattern - completely independent
+  const newX = centerX + radiusX * Math.sin(t * 0.8);
+  const newY = centerY + radiusY * Math.sin(2 * t * 0.8);
+
   // Update animation phase for wing flapping
-  boss.animationPhase += 0.05;
+  const newAnimationPhase = boss.animationPhase + 0.05;
+
+  return {
+    ...boss,
+    animationPhase: newAnimationPhase,
+    position: { x: newX, y: newY },
+  };
 };
 
 // Bat Boss projectile throwing function
@@ -388,41 +407,41 @@ const batThrowProjectile = (
 ): Projectile[] => {
   const config = BOSS_CONFIGS.bat;
   const interval = skillLevel < 0.3 ? 1500 : config.projectileInterval;
-  
+
   if (Date.now() - boss.lastProjectileTime < interval) {
     return [];
   }
-  
+
   boss.lastProjectileTime = Date.now();
-  
+
   // Determine if triple-shot (50% base, 70% for skilled players)
   const tripleChance = skillLevel > 0.7 ? 0.7 : 0.5;
   const isTripleShot = Math.random() < tripleChance;
-  
+
   const projectiles: Projectile[] = [];
-  
+
   if (isTripleShot) {
     // Triple-shot with spread angles (-30°, 0°, 30°)
     const angles = [-30, 0, 30];
-    
-    angles.forEach(angleDeg => {
+
+    angles.forEach((angleDeg) => {
       const angleRad = (angleDeg * Math.PI) / 180;
-      
+
       // Calculate base direction toward player
       const dx = playerPos.x - boss.position.x;
       const dy = playerPos.y - boss.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       // Normalize and apply rotation
       const baseVx = (dx / distance) * config.projectileSpeed;
       const baseVy = (dy / distance) * config.projectileSpeed;
-      
+
       // Rotate velocity by angle
       const velocity = {
         x: baseVx * Math.cos(angleRad) - baseVy * Math.sin(angleRad),
         y: baseVx * Math.sin(angleRad) + baseVy * Math.cos(angleRad),
       };
-      
+
       const projectile = pool.acquire('pumpkin', boss.position, velocity, config.projectileSize);
       projectiles.push(projectile);
     });
@@ -431,16 +450,16 @@ const batThrowProjectile = (
     const dx = playerPos.x - boss.position.x;
     const dy = playerPos.y - boss.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    
+
     const velocity = {
       x: (dx / distance) * config.projectileSpeed,
       y: (dy / distance) * config.projectileSpeed,
     };
-    
+
     const projectile = pool.acquire('pumpkin', boss.position, velocity, config.projectileSize);
     projectiles.push(projectile);
   }
-  
+
   return projectiles;
 };
 
@@ -448,7 +467,7 @@ const batThrowProjectile = (
 const renderInkBlob = (ctx: CanvasRenderingContext2D, projectile: Projectile, time: number) => {
   const { x, y } = projectile.position;
   const radius = projectile.size;
-  
+
   // Outer glow (cyan)
   ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
   ctx.shadowColor = '#00FFFF';
@@ -457,13 +476,13 @@ const renderInkBlob = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
   ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  
+
   // Dark purple blob
   ctx.fillStyle = '#4B0082';
   ctx.beginPath();
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
-  
+
   // Animated ripple effect
   const ripplePhase = (time * 0.01) % (Math.PI * 2);
   const rippleRadius = radius * 0.7 + Math.sin(ripplePhase) * 3;
@@ -479,7 +498,7 @@ const renderInkBlob = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
 const renderPumpkin = (ctx: CanvasRenderingContext2D, projectile: Projectile, time: number) => {
   const { x, y } = projectile.position;
   const radius = projectile.size;
-  
+
   // Pumpkin body (orange)
   ctx.fillStyle = '#FF8C00';
   ctx.shadowColor = '#FF8C00';
@@ -488,7 +507,7 @@ const renderPumpkin = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
   ctx.arc(x, y, radius, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
-  
+
   // Pumpkin ridges
   ctx.strokeStyle = '#D2691E';
   ctx.lineWidth = 1.5;
@@ -498,14 +517,14 @@ const renderPumpkin = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
     ctx.quadraticCurveTo(x + i * (radius * 0.4), y, x + i * (radius * 0.4), y + radius);
     ctx.stroke();
   }
-  
+
   // Green stem
   ctx.fillStyle = '#228B22';
   ctx.fillRect(x - 2, y - radius - 4, 4, 4);
-  
+
   // Jack-o-lantern face
   ctx.fillStyle = '#000000';
-  
+
   // Left eye (triangle)
   ctx.beginPath();
   ctx.moveTo(x - radius * 0.5, y - radius * 0.2);
@@ -513,7 +532,7 @@ const renderPumpkin = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
   ctx.lineTo(x - radius * 0.3, y);
   ctx.closePath();
   ctx.fill();
-  
+
   // Right eye (triangle)
   ctx.beginPath();
   ctx.moveTo(x + radius * 0.5, y - radius * 0.2);
@@ -521,16 +540,21 @@ const renderPumpkin = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
   ctx.lineTo(x + radius * 0.3, y);
   ctx.closePath();
   ctx.fill();
-  
+
   // Evil grin
   ctx.beginPath();
   ctx.arc(x, y + radius * 0.2, radius * 0.4, 0.2, Math.PI - 0.2);
   ctx.fill();
-  
+
   // Teeth
   ctx.fillStyle = '#FF8C00';
   for (let i = 0; i < 3; i++) {
-    ctx.fillRect(x - radius * 0.3 + i * (radius * 0.2), y + radius * 0.2, radius * 0.15, radius * 0.25);
+    ctx.fillRect(
+      x - radius * 0.3 + i * (radius * 0.2),
+      y + radius * 0.2,
+      radius * 0.15,
+      radius * 0.25
+    );
   }
 };
 
@@ -540,7 +564,7 @@ const checkBossCollision = (playerPos: Position, boss: Boss): boolean => {
   const dx = playerPos.x - boss.position.x;
   const dy = playerPos.y - boss.position.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  
+
   return distance < radius + GAME_CONFIG.playerSize / 2;
 };
 
@@ -548,7 +572,7 @@ const checkBossCollision = (playerPos: Position, boss: Boss): boolean => {
 const handleBossHit = (boss: Boss): number => {
   boss.health -= 1;
   boss.hitFlashTime = Date.now();
-  
+
   // Return bounce velocity based on boss type
   return boss.type === 'octopus' ? -8 : -7;
 };
@@ -558,7 +582,7 @@ const checkProjectileCollision = (playerPos: Position, projectile: Projectile): 
   const dx = playerPos.x - projectile.position.x;
   const dy = playerPos.y - projectile.position.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
-  
+
   return distance < projectile.size + GAME_CONFIG.playerSize / 2;
 };
 
@@ -571,7 +595,7 @@ const handleProjectileHit = (
 ): { gameOver: boolean; bonusPoints: number } => {
   let gameOver = false;
   let bonusPoints = 0;
-  
+
   // Shield blocks projectile
   if (shieldActive) {
     pool.release(projectile);
@@ -579,7 +603,7 @@ const handleProjectileHit = (
     playPowerUpSound();
     return { gameOver: false, bonusPoints: 0 };
   }
-  
+
   // Fire destroys projectile and awards points for pumpkins
   if (fireActive) {
     pool.release(projectile);
@@ -589,11 +613,11 @@ const handleProjectileHit = (
     }
     return { gameOver: false, bonusPoints };
   }
-  
+
   // No protection - game over
   gameOver = true;
   pool.release(projectile);
-  
+
   return { gameOver, bonusPoints };
 };
 
@@ -879,19 +903,23 @@ const renderBossHealthBar = (ctx: CanvasRenderingContext2D, boss: Boss) => {
   const barHeight = 20;
   const barX = (GAME_CONFIG.gridWidth - barWidth) / 2;
   const barY = 20;
-  
+
   const healthPercent = boss.health / boss.maxHealth;
-  
+
   // Background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
   ctx.fillRect(barX - 5, barY - 25, barWidth + 10, 70);
-  
+
   // Boss name
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 14px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText(boss.type === 'octopus' ? 'OCTOPUS BOSS' : 'BAT BOSS', GAME_CONFIG.gridWidth / 2, barY - 8);
-  
+  ctx.fillText(
+    boss.type === 'octopus' ? 'OCTOPUS BOSS' : 'BAT BOSS',
+    GAME_CONFIG.gridWidth / 2,
+    barY - 8
+  );
+
   // Health bar border with glow
   ctx.strokeStyle = '#FFD700';
   ctx.lineWidth = 3;
@@ -899,11 +927,11 @@ const renderBossHealthBar = (ctx: CanvasRenderingContext2D, boss: Boss) => {
   ctx.shadowBlur = 10;
   ctx.strokeRect(barX, barY, barWidth, barHeight);
   ctx.shadowBlur = 0;
-  
+
   // Health bar background
   ctx.fillStyle = '#333333';
   ctx.fillRect(barX, barY, barWidth, barHeight);
-  
+
   // Health bar fill with gradient
   const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth * healthPercent, barY);
   if (healthPercent > 0.5) {
@@ -916,38 +944,42 @@ const renderBossHealthBar = (ctx: CanvasRenderingContext2D, boss: Boss) => {
     gradient.addColorStop(0, '#FF4500');
     gradient.addColorStop(1, '#FF0000');
   }
-  
+
   ctx.fillStyle = gradient;
   ctx.fillRect(barX, barY, barWidth * healthPercent, barHeight);
-  
+
   // Health text
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
   ctx.fillText(`${boss.health} / ${boss.maxHealth}`, GAME_CONFIG.gridWidth / 2, barY + 14);
-  
+
   // Instruction text - pulsing
   const pulseAlpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
   ctx.globalAlpha = pulseAlpha;
   ctx.fillStyle = '#FFD700';
   ctx.font = 'bold 11px Arial';
-  ctx.fillText('⚔️ BOSS WILL CHASE YOU! COLLIDE TO ATTACK! ⚔️', GAME_CONFIG.gridWidth / 2, barY + 30);
+  ctx.fillText(
+    '⚔️ BOSS WILL CHASE YOU! COLLIDE TO ATTACK! ⚔️',
+    GAME_CONFIG.gridWidth / 2,
+    barY + 30
+  );
   ctx.globalAlpha = 1;
 };
 
 const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTime: number) => {
   const duration = 2000; // 2 seconds
   const progress = Math.min(elapsedTime / duration, 1);
-  
+
   // Dark background overlay fade in
   ctx.fillStyle = `rgba(0, 0, 0, ${progress * 0.5})`;
   ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
-  
+
   // Boss name appears after 0.3s
   if (elapsedTime > 300) {
     const textProgress = Math.min((elapsedTime - 300) / 500, 1);
     ctx.globalAlpha = textProgress;
-    
+
     ctx.fillStyle = '#FFD700';
     ctx.shadowColor = '#FFD700';
     ctx.shadowBlur = 20;
@@ -958,25 +990,25 @@ const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTi
       GAME_CONFIG.gridWidth / 2,
       GAME_CONFIG.gridHeight / 2 - 50
     );
-    
+
     ctx.font = 'bold 24px Arial';
     ctx.fillText('APPEARS!', GAME_CONFIG.gridWidth / 2, GAME_CONFIG.gridHeight / 2);
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
   }
-  
+
   // Boss slides in from right after 0.5s
   if (elapsedTime > 500) {
     const slideProgress = Math.min((elapsedTime - 500) / 1500, 1);
     // Ease-out cubic
     const eased = 1 - Math.pow(1 - slideProgress, 3);
-    
+
     const startX = GAME_CONFIG.gridWidth + 100;
     const targetX = boss.type === 'octopus' ? 500 : 300;
     const currentX = startX + (targetX - startX) * eased;
-    
+
     const tempBoss = { ...boss, position: { ...boss.position, x: currentX } };
-    
+
     if (boss.type === 'octopus') {
       renderOctopusBoss(ctx, tempBoss, Date.now());
     } else {
@@ -988,25 +1020,25 @@ const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTi
 const renderVictoryAnimation = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTime: number) => {
   const duration = 1000; // 1 second
   const progress = Math.min(elapsedTime / duration, 1);
-  
+
   // Fade out and shrink boss
   ctx.globalAlpha = 1 - progress;
   const scale = 1 - progress * 0.5;
-  
+
   ctx.save();
   ctx.translate(boss.position.x, boss.position.y);
   ctx.scale(scale, scale);
   ctx.translate(-boss.position.x, -boss.position.y);
-  
+
   if (boss.type === 'octopus') {
     renderOctopusBoss(ctx, boss, Date.now());
   } else {
     renderBatBoss(ctx, boss, Date.now());
   }
-  
+
   ctx.restore();
   ctx.globalAlpha = 1;
-  
+
   // Victory text
   ctx.fillStyle = '#FFD700';
   ctx.shadowColor = '#FFD700';
@@ -1014,12 +1046,16 @@ const renderVictoryAnimation = (ctx: CanvasRenderingContext2D, boss: Boss, elaps
   ctx.font = 'bold 64px Arial';
   ctx.textAlign = 'center';
   ctx.fillText('VICTORY!', GAME_CONFIG.gridWidth / 2, GAME_CONFIG.gridHeight / 2 - 30);
-  
+
   // Bonus points
   const bonusPoints = boss.type === 'octopus' ? 50 : 100;
   ctx.font = 'bold 32px Arial';
   ctx.fillStyle = '#00FF00';
-  ctx.fillText(`+${bonusPoints} POINTS!`, GAME_CONFIG.gridWidth / 2, GAME_CONFIG.gridHeight / 2 + 20);
+  ctx.fillText(
+    `+${bonusPoints} POINTS!`,
+    GAME_CONFIG.gridWidth / 2,
+    GAME_CONFIG.gridHeight / 2 + 20
+  );
   ctx.shadowBlur = 0;
 };
 
@@ -1027,12 +1063,15 @@ const renderVictoryAnimation = (ctx: CanvasRenderingContext2D, boss: Boss, elaps
 let spookyMusicInterval: number | undefined;
 const startSpookyMusic = () => {
   if (spookyMusicInterval) return; // Already playing
-  
+
   const notes = [220, 233, 196, 185, 220, 233, 196, 185]; // Spooky melody
   let noteIndex = 0;
-  
+
   spookyMusicInterval = window.setInterval(() => {
-    playSound(notes[noteIndex % notes.length], 0.3, 'triangle');
+    const note = notes[noteIndex % notes.length];
+    if (note) {
+      playSound(note, 0.3, 'triangle');
+    }
     noteIndex++;
   }, 800);
 };
@@ -1066,7 +1105,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   const [gameState, setGameState] = useState<GameState>({
     player: {
-      position: { x: 60, y: GAME_CONFIG.gridHeight / 2 },
+      position: { x: 150, y: GAME_CONFIG.gridHeight / 2 },
       velocity: 0,
       isAlive: true,
       skin: 'orange',
@@ -1295,7 +1334,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
       setGameState({
         player: {
-          position: { x: 60, y: GAME_CONFIG.gridHeight / 2 },
+          position: { x: 150, y: GAME_CONFIG.gridHeight / 2 },
           velocity: 0,
           isAlive: true,
           skin: selectedSkin,
@@ -1393,21 +1432,23 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           BOSS_BATTLES_ENABLED,
           newState.bossState.defeatedBosses
         );
-        
+
         if (bossType) {
+          console.log(`🎮 BOSS BATTLE TRIGGERED! Type: ${bossType}, Score: ${newState.score}`);
+
           // Start boss encounter
           newState.bossState.bossEncounterActive = true;
           newState.bossState.bossTransitionPhase = 'entrance';
           newState.bossState.transitionStartTime = Date.now();
-          
+
           const config = BOSS_CONFIGS[bossType];
-          
+
           // Apply skill-based health scaling
-          const adjustedHealth = 
-            playerProfile.skillLevel > 0.7 
+          const adjustedHealth =
+            playerProfile.skillLevel > 0.7
               ? config.health + (bossType === 'octopus' ? 2 : 3)
               : config.health;
-          
+
           // Create boss instance
           newState.bossState.currentBoss = {
             id: Math.random().toString(36).substring(2, 9),
@@ -1420,23 +1461,23 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             animationPhase: 0,
             hitFlashTime: 0,
           };
-          
+
           // Clear normal enemies (snakes and obstacles)
           newState.snakes = [];
           newState.obstacles = [];
-          
+
           // Play boss entrance sound
           playBossEntranceSound();
-          
+
           console.log(`Boss encounter started: ${bossType} at score ${newState.score}`);
         }
       }
-      
+
       // Handle boss encounter phases
       if (newState.bossState.bossEncounterActive && newState.bossState.currentBoss) {
         const boss = newState.bossState.currentBoss;
         const elapsedTime = Date.now() - newState.bossState.transitionStartTime;
-        
+
         if (newState.bossState.bossTransitionPhase === 'entrance') {
           // Entrance phase lasts 2 seconds
           if (elapsedTime >= 2000) {
@@ -1445,16 +1486,18 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           }
         } else if (newState.bossState.bossTransitionPhase === 'active') {
           // Update boss position
+          let updatedBoss: Boss;
           if (boss.type === 'octopus') {
-            updateOctopusBoss(boss, Date.now(), newState.player.position.y);
+            updatedBoss = updateOctopusBoss(boss, Date.now(), newState.player.position.y);
           } else {
-            updateBatBoss(boss, Date.now(), newState.player.position.y);
+            updatedBoss = updateBatBoss(boss, Date.now(), newState.player.position.y);
           }
-          
+          newState.bossState.currentBoss = updatedBoss;
+
           // Throw projectiles
-          if (boss.type === 'octopus') {
+          if (updatedBoss.type === 'octopus') {
             const projectile = octopusThrowProjectile(
-              boss,
+              updatedBoss,
               newState.player.position,
               projectilePoolRef.current,
               playerProfile.skillLevel
@@ -1465,7 +1508,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             }
           } else {
             const projectiles = batThrowProjectile(
-              boss,
+              updatedBoss,
               newState.player.position,
               projectilePoolRef.current,
               playerProfile.skillLevel
@@ -1475,21 +1518,24 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               playProjectileThrowSound();
             }
           }
-          
+
           // Check boss collision with player
-          if (checkBossCollision(newState.player.position, boss)) {
-            const bounceVelocity = handleBossHit(boss);
+          if (checkBossCollision(newState.player.position, updatedBoss)) {
+            const bounceVelocity = handleBossHit(updatedBoss);
             newState.player.velocity = bounceVelocity;
             playBossHitSound();
-            
+
             // Award points for hitting boss
             newState.score += 5;
-            
+
+            console.log(`💥 Boss hit! Health: ${updatedBoss.health}/${updatedBoss.maxHealth}`);
+
             // Check if boss defeated
-            if (boss.health <= 0) {
+            if (updatedBoss.health <= 0) {
+              console.log('🎉 Boss defeated!');
               newState.bossState.bossTransitionPhase = 'victory';
               newState.bossState.transitionStartTime = Date.now();
-              boss.isActive = false;
+              updatedBoss.isActive = false;
               playBossDefeatedSound();
             }
           }
@@ -1499,7 +1545,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             // Award bonus points
             const bonusPoints = boss.type === 'octopus' ? 50 : 100;
             newState.score += bonusPoints;
-            
+
             // Spawn reward power-up
             const rewardType = boss.type === 'octopus' ? 'shield' : 'candy';
             newState.powerUps.push({
@@ -1511,39 +1557,39 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               },
               collected: false,
             });
-            
+
             // Mark boss as defeated
             newState.bossState.defeatedBosses.push(boss.type);
-            
+
             // End boss encounter
             newState.bossState.bossEncounterActive = false;
             newState.bossState.currentBoss = null;
             newState.bossState.bossTransitionPhase = null;
             newState.bossState.projectiles = [];
-            
+
             // Resume normal enemy spawning (they'll respawn naturally)
           }
         }
       }
-      
+
       // Update projectiles during boss encounter
       if (newState.bossState.bossEncounterActive) {
         const activeProjectiles = projectilePoolRef.current.getActive();
-        
+
         // Limit to 10 active projectiles
         if (activeProjectiles.length > 10) {
           const excess = activeProjectiles.slice(10);
-          excess.forEach(p => projectilePoolRef.current.release(p));
+          excess.forEach((p) => projectilePoolRef.current.release(p));
         }
-        
+
         // Update projectile positions
-        newState.bossState.projectiles = newState.bossState.projectiles.filter(projectile => {
+        newState.bossState.projectiles = newState.bossState.projectiles.filter((projectile) => {
           if (!projectile.active) return false;
-          
+
           // Move projectile
           projectile.position.x += projectile.velocity.x;
           projectile.position.y += projectile.velocity.y;
-          
+
           // Check if off-screen
           if (
             projectile.position.x < -50 ||
@@ -1554,7 +1600,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             projectilePoolRef.current.release(projectile);
             return false;
           }
-          
+
           // Check collision with player
           if (checkProjectileCollision(newState.player.position, projectile)) {
             const result = handleProjectileHit(
@@ -1563,17 +1609,17 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               newState.fireActive,
               projectilePoolRef.current
             );
-            
+
             if (result.gameOver) {
               newState.isGameOver = true;
               newState.isPlaying = false;
-              
+
               if (HALLOWEEN_EVENT_ACTIVE) {
                 playEvilLaugh();
               } else {
                 playCollisionSound();
               }
-              
+
               // Update ML profile on game over
               const survivalTime = Date.now() - gameStartTime.current;
               const updatedProfile = updatePlayerProfile(username, {
@@ -1583,17 +1629,17 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
                 reactionTimes: reactionTimes.current,
               });
               setPlayerProfile(updatedProfile);
-              
+
               onScoreUpdate(newState.score, newState.level);
             }
-            
+
             if (result.bonusPoints > 0) {
               newState.score += result.bonusPoints;
             }
-            
+
             return false;
           }
-          
+
           return true;
         });
       }
@@ -1655,7 +1701,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
         if (distance < 20 && !newPowerUp.collected) {
           newPowerUp.collected = true;
-          
+
           if (newPowerUp.type === 'shield') {
             newState.shieldActive = true;
             newState.shieldEndTime = Date.now() + 20000; // 20 seconds
@@ -1721,7 +1767,11 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           }
         }
 
-        if (checkSnakeCollision(newState.player.position, newSnake) && !newState.shieldActive && !newState.fireActive) {
+        if (
+          checkSnakeCollision(newState.player.position, newSnake) &&
+          !newState.shieldActive &&
+          !newState.fireActive
+        ) {
           newState.isGameOver = true;
           newState.isPlaying = false;
 
@@ -1746,11 +1796,11 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         }
 
         // Update the snake in the array
-        const index = newState.snakes.findIndex(s => s.id === newSnake.id);
+        const index = newState.snakes.findIndex((s) => s.id === newSnake.id);
         if (index !== -1) {
           newState.snakes[index] = newSnake;
         }
-        
+
         return true; // Keep snake
       });
 
@@ -2269,7 +2319,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         // HALLOWEEN EVENT - Fire power-up icon
         const fireX = powerUp.position.x;
         const fireY = powerUp.position.y;
-        
+
         // Outer glow
         ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
         ctx.shadowColor = '#FF6600';
@@ -2278,7 +2328,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.arc(fireX, fireY, 15, 0, 2 * Math.PI);
         ctx.fill();
         ctx.shadowBlur = 0;
-        
+
         // Fire flame shape
         ctx.fillStyle = '#FF4500';
         ctx.beginPath();
@@ -2288,7 +2338,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.quadraticCurveTo(fireX - 3, fireY + 8, fireX - 6, fireY + 5);
         ctx.quadraticCurveTo(fireX - 8, fireY - 5, fireX, fireY - 10);
         ctx.fill();
-        
+
         // Inner flame
         ctx.fillStyle = '#FF8C00';
         ctx.beginPath();
@@ -2298,7 +2348,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.quadraticCurveTo(fireX - 2, fireY + 5, fireX - 4, fireY + 3);
         ctx.quadraticCurveTo(fireX - 5, fireY - 2, fireX, fireY - 6);
         ctx.fill();
-        
+
         // Hot core
         ctx.fillStyle = '#FFD700';
         ctx.beginPath();
@@ -2307,7 +2357,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.quadraticCurveTo(fireX, fireY + 3, fireX - 2, fireY + 2);
         ctx.quadraticCurveTo(fireX - 3, fireY, fireX, fireY - 3);
         ctx.fill();
-        
+
         // Animated sparkles
         const sparkleOffset = Math.sin(Date.now() * 0.01) * 3;
         ctx.fillStyle = '#FFFF00';
@@ -2321,21 +2371,21 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         // HALLOWEEN EVENT - Candy power-up icon (super rare!)
         const candyX = powerUp.position.x;
         const candyY = powerUp.position.y;
-        
+
         // Rainbow glow
         ctx.shadowColor = '#FF69B4';
         ctx.shadowBlur = 20;
-        
+
         // Candy wrapper (striped)
         ctx.fillStyle = '#FF1493';
         ctx.fillRect(candyX - 10, candyY - 6, 20, 12);
-        
+
         // Stripes
         ctx.fillStyle = '#FFD700';
         for (let i = 0; i < 4; i++) {
           ctx.fillRect(candyX - 10 + i * 5, candyY - 6, 2, 12);
         }
-        
+
         // Wrapper twists
         ctx.fillStyle = '#FF69B4';
         ctx.beginPath();
@@ -2344,16 +2394,16 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.lineTo(candyX - 15, candyY + 5);
         ctx.closePath();
         ctx.fill();
-        
+
         ctx.beginPath();
         ctx.moveTo(candyX + 10, candyY);
         ctx.lineTo(candyX + 15, candyY - 5);
         ctx.lineTo(candyX + 15, candyY + 5);
         ctx.closePath();
         ctx.fill();
-        
+
         ctx.shadowBlur = 0;
-        
+
         // Sparkles (animated)
         const candySparkle = Math.sin(Date.now() * 0.01) * 2;
         ctx.fillStyle = '#FFD700';
@@ -2396,14 +2446,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.beginPath();
       ctx.arc(playerX, playerY, playerRadius + 8, 0, 2 * Math.PI);
       ctx.stroke();
-      
+
       // Flame particles around player
       for (let i = 0; i < 8; i++) {
         const angle = (i / 8) * Math.PI * 2 + Date.now() * 0.005;
         const distance = playerRadius + 10 + Math.sin(Date.now() * 0.01 + i) * 3;
         const fx = playerX + Math.cos(angle) * distance;
         const fy = playerY + Math.sin(angle) * distance;
-        
+
         ctx.fillStyle = i % 2 === 0 ? '#FF4500' : '#FF8C00';
         ctx.beginPath();
         ctx.arc(fx, fy, 3, 0, 2 * Math.PI);
@@ -2502,7 +2552,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.fillStyle = '#8B4513'; // Light brown
       ctx.strokeStyle = '#654321';
       ctx.lineWidth = 2;
-      
+
       // Hat cone (larger and more visible)
       ctx.beginPath();
       ctx.moveTo(playerX - 12, playerY - playerRadius - 2);
@@ -2511,19 +2561,19 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      
+
       // Hat brim (wider)
       ctx.fillStyle = '#8B4513';
       ctx.fillRect(playerX - 14, playerY - playerRadius - 2, 28, 4);
       ctx.strokeRect(playerX - 14, playerY - playerRadius - 2, 28, 4);
-      
+
       // Hat buckle (gold)
       ctx.fillStyle = '#FFD700';
       ctx.fillRect(playerX - 3, playerY - playerRadius - 10, 6, 4);
       ctx.strokeStyle = '#DAA520';
       ctx.lineWidth = 1;
       ctx.strokeRect(playerX - 3, playerY - playerRadius - 10, 6, 4);
-      
+
       // Witch stars on hat
       ctx.fillStyle = '#FFD700';
       ctx.beginPath();
@@ -2532,16 +2582,15 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.beginPath();
       ctx.arc(playerX + 8, playerY - playerRadius - 12, 1.5, 0, 2 * Math.PI);
       ctx.fill();
-      
     } else if (selectedSkin === 'ghost') {
       // HALLOWEEN EVENT - Ghost chibi character (similar to normal chibi but ghostly)
       // Override the normal body with ghost styling
-      
+
       // Ghost body - semi-transparent white with ethereal glow
       ctx.globalAlpha = 0.85;
       ctx.shadowColor = '#E6E6FA';
       ctx.shadowBlur = 15;
-      
+
       const ghostGradient = ctx.createRadialGradient(
         playerX - 2,
         playerY - 2,
@@ -2553,7 +2602,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ghostGradient.addColorStop(0, '#FFFFFF');
       ghostGradient.addColorStop(0.7, '#F0F8FF');
       ghostGradient.addColorStop(1, '#E6E6FA');
-      
+
       ctx.fillStyle = ghostGradient;
       ctx.strokeStyle = '#E6E6FA';
       ctx.lineWidth = 2;
@@ -2563,7 +2612,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
-      
+
       // Pulsing ethereal aura
       const glowIntensity = 0.2 + Math.sin(Date.now() * 0.003) * 0.15;
       ctx.globalAlpha = glowIntensity;
@@ -2572,7 +2621,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.arc(playerX, playerY, playerRadius + 4, 0, 2 * Math.PI);
       ctx.fill();
       ctx.globalAlpha = 1;
-      
+
       // Ghost eyes - hollow and spooky but still cute
       ctx.fillStyle = '#4B0082';
       ctx.beginPath();
@@ -2581,7 +2630,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.beginPath();
       ctx.arc(playerX + 3, playerY - 2, 3, 0, 2 * Math.PI);
       ctx.fill();
-      
+
       // Eye glow
       ctx.fillStyle = '#9370DB';
       ctx.globalAlpha = 0.6;
@@ -2592,7 +2641,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.arc(playerX + 3, playerY - 2, 4, 0, 2 * Math.PI);
       ctx.fill();
       ctx.globalAlpha = 1;
-      
+
       // Eye sparkles (ghostly)
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
@@ -2601,7 +2650,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.beginPath();
       ctx.arc(playerX + 4, playerY - 3, 0.8, 0, 2 * Math.PI);
       ctx.fill();
-      
+
       // Cute ghost smile (wavy)
       ctx.strokeStyle = '#9370DB';
       ctx.lineWidth = 2;
@@ -2609,7 +2658,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.moveTo(playerX - 4, playerY + 3);
       ctx.quadraticCurveTo(playerX, playerY + 5, playerX + 4, playerY + 3);
       ctx.stroke();
-      
+
       // Ghostly arms (semi-transparent)
       ctx.globalAlpha = 0.7;
       ctx.strokeStyle = '#E6E6FA';
@@ -2621,7 +2670,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.moveTo(playerX + playerRadius - 1, playerY);
       ctx.lineTo(playerX + playerRadius + 3, playerY - 3);
       ctx.stroke();
-      
+
       // Ghostly hands
       ctx.fillStyle = '#F0F8FF';
       ctx.beginPath();
@@ -2631,7 +2680,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.arc(playerX + playerRadius + 3, playerY - 3, 1.5, 0, 2 * Math.PI);
       ctx.fill();
       ctx.globalAlpha = 1;
-      
+
       // Floating sparkles around ghost
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       const floatOffset = Math.sin(Date.now() * 0.005) * 3;
@@ -3146,12 +3195,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         );
       }
     });
-    
+
     // Draw boss encounter elements
     if (gameState.bossState.bossEncounterActive && gameState.bossState.currentBoss) {
       const boss = gameState.bossState.currentBoss;
       const elapsedTime = Date.now() - gameState.bossState.transitionStartTime;
-      
+
       if (gameState.bossState.bossTransitionPhase === 'entrance') {
         renderBossEntrance(ctx, boss, elapsedTime);
       } else if (gameState.bossState.bossTransitionPhase === 'active') {
@@ -3161,12 +3210,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         } else {
           renderBatBoss(ctx, boss, Date.now());
         }
-        
+
         // Render boss health bar
         renderBossHealthBar(ctx, boss);
-        
+
         // Render projectiles
-        gameState.bossState.projectiles.forEach(projectile => {
+        gameState.bossState.projectiles.forEach((projectile) => {
           if (projectile.active) {
             if (projectile.type === 'inkBlob') {
               renderInkBlob(ctx, projectile, Date.now());
@@ -3203,7 +3252,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           </span>
           <span className="text-gray-700"> - {username}</span>
         </h1>
-        
+
         {/* Interactive Scorecard */}
         <div className="flex gap-3 text-base sm:text-lg flex-wrap justify-center">
           {/* Score Card - Animated on change */}
@@ -3213,7 +3262,9 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               <div className="flex items-center gap-2">
                 <span className="text-2xl animate-bounce-slow">🎯</span>
                 <div className="flex flex-col">
-                  <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Score</span>
+                  <span className="text-xs text-blue-600 font-semibold uppercase tracking-wide">
+                    Score
+                  </span>
                   <span className="text-blue-900 font-black text-xl tabular-nums">
                     {gameState.score}
                   </span>
@@ -3233,39 +3284,52 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
                   {gameState.level === 'easy' ? '🟢' : gameState.level === 'medium' ? '🟡' : '🔴'}
                 </span>
                 <div className="flex flex-col">
-                  <span className="text-xs text-purple-600 font-semibold uppercase tracking-wide">Level</span>
+                  <span className="text-xs text-purple-600 font-semibold uppercase tracking-wide">
+                    Level
+                  </span>
                   <span className="text-purple-900 font-black text-xl uppercase">
                     {gameState.level}
                   </span>
                 </div>
               </div>
               {/* Progress bar indicator */}
-              <div className="absolute bottom-0 left-0 h-1 bg-purple-600 transition-all duration-500"
-                   style={{ width: gameState.level === 'easy' ? '33%' : gameState.level === 'medium' ? '66%' : '100%' }}>
-              </div>
+              <div
+                className="absolute bottom-0 left-0 h-1 bg-purple-600 transition-all duration-500"
+                style={{
+                  width:
+                    gameState.level === 'easy'
+                      ? '33%'
+                      : gameState.level === 'medium'
+                        ? '66%'
+                        : '100%',
+                }}
+              ></div>
             </div>
           </div>
 
           {/* Skill Card - AI Indicator with animated progress */}
           <div className="group relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-emerald-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300 rounded-lg"></div>
-            <div 
+            <div
               className="relative bg-gradient-to-br from-green-50 to-green-100 px-4 py-2 rounded-lg border-2 border-green-400 shadow-md hover:shadow-lg hover:scale-105 transform transition-all duration-300 cursor-pointer"
               title="AI adapts difficulty to your skill"
             >
               <div className="flex items-center gap-2">
                 <span className="text-2xl animate-pulse-slow">🤖</span>
                 <div className="flex flex-col">
-                  <span className="text-xs text-green-600 font-semibold uppercase tracking-wide">AI Skill</span>
+                  <span className="text-xs text-green-600 font-semibold uppercase tracking-wide">
+                    AI Skill
+                  </span>
                   <span className="text-green-900 font-black text-xl tabular-nums">
                     {Math.round(playerProfile.skillLevel * 100)}%
                   </span>
                 </div>
               </div>
               {/* Skill level progress bar */}
-              <div className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-400 to-emerald-600 transition-all duration-1000"
-                   style={{ width: `${playerProfile.skillLevel * 100}%` }}>
-              </div>
+              <div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-400 to-emerald-600 transition-all duration-1000"
+                style={{ width: `${playerProfile.skillLevel * 100}%` }}
+              ></div>
               {/* Glow effect */}
               <div className="absolute inset-0 bg-green-400 opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-300"></div>
             </div>
@@ -3279,19 +3343,21 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
                 <div className="flex items-center gap-2">
                   <span className="text-2xl animate-spin-slow">🛡️</span>
                   <div className="flex flex-col">
-                    <span className="text-xs text-cyan-600 font-semibold uppercase tracking-wide">Shield</span>
+                    <span className="text-xs text-cyan-600 font-semibold uppercase tracking-wide">
+                      Shield
+                    </span>
                     <span className="text-cyan-900 font-black text-xl tabular-nums">
                       {Math.ceil((gameState.shieldEndTime - Date.now()) / 1000)}s
                     </span>
                   </div>
                 </div>
                 {/* Countdown progress bar */}
-                <div 
+                <div
                   className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-cyan-400 to-blue-600 transition-all duration-1000"
-                  style={{ 
-                    width: `${((gameState.shieldEndTime - Date.now()) / 20000) * 100}%` 
-                  }}>
-                </div>
+                  style={{
+                    width: `${((gameState.shieldEndTime - Date.now()) / 20000) * 100}%`,
+                  }}
+                ></div>
                 {/* Pulsing glow */}
                 <div className="absolute inset-0 bg-cyan-400 opacity-20 blur-lg animate-pulse"></div>
               </div>
@@ -3306,19 +3372,21 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🔥</span>
                   <div className="flex flex-col">
-                    <span className="text-xs text-orange-600 font-semibold uppercase tracking-wide">Fire Power</span>
+                    <span className="text-xs text-orange-600 font-semibold uppercase tracking-wide">
+                      Fire Power
+                    </span>
                     <span className="text-orange-900 font-black text-xl tabular-nums">
                       {Math.ceil((gameState.fireEndTime - Date.now()) / 1000)}s
                     </span>
                   </div>
                 </div>
                 {/* Countdown progress bar */}
-                <div 
+                <div
                   className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-400 to-red-600 transition-all duration-1000"
-                  style={{ 
-                    width: `${((gameState.fireEndTime - Date.now()) / 10000) * 100}%` 
-                  }}>
-                </div>
+                  style={{
+                    width: `${((gameState.fireEndTime - Date.now()) / 10000) * 100}%`,
+                  }}
+                ></div>
                 {/* Pulsing glow */}
                 <div className="absolute inset-0 bg-orange-400 opacity-20 blur-lg animate-pulse"></div>
               </div>
@@ -3423,14 +3491,18 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             <div className="text-center animate-fade-in">
               {HALLOWEEN_EVENT_ACTIVE ? (
                 <>
-                  <p className="text-3xl font-bold text-red-600 mb-4 animate-pulse">💀 YOU HAVE FALLEN 💀</p>
+                  <p className="text-3xl font-bold text-red-600 mb-4 animate-pulse">
+                    💀 YOU HAVE FALLEN 💀
+                  </p>
                   <p className="text-xl text-orange-400 mb-2">📸 Capture your doom...</p>
                   <p className="text-lg text-gray-300">The darkness awaits...</p>
                 </>
               ) : (
                 <>
                   <p className="text-2xl font-bold text-yellow-400 mb-2">📸 Screenshot Time!</p>
-                  <p className="text-lg text-gray-300">Menu appears in {Math.ceil((5000 - (Date.now() % 5000)) / 1000)}s...</p>
+                  <p className="text-lg text-gray-300">
+                    Menu appears in {Math.ceil((5000 - (Date.now() % 5000)) / 1000)}s...
+                  </p>
                 </>
               )}
             </div>

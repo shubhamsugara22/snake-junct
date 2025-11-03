@@ -97,6 +97,11 @@ const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
   // Flash white when hit
   const isFlashing = time - boss.hitFlashTime < 200;
   
+  // Show damage number when hit
+  if (isFlashing) {
+    renderDamageNumber(ctx, x, y - 50, time - boss.hitFlashTime);
+  }
+  
   // Draw 8 tentacles with wave animation
   for (let i = 0; i < 8; i++) {
     const angle = (i / 8) * Math.PI * 2 + boss.animationPhase;
@@ -168,13 +173,17 @@ const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
 };
 
 // Octopus Boss update function
-const updateOctopusBoss = (boss: Boss, time: number): void => {
+const updateOctopusBoss = (boss: Boss, time: number, playerY: number): void => {
   // Rotate tentacles slowly
   boss.animationPhase += 0.02;
   
-  // Keep position fixed at center-right
+  // Keep X position fixed at center-right, but move Y toward player
   boss.position.x = 500;
-  boss.position.y = 200;
+  
+  // Smoothly move toward player's Y position
+  const targetY = playerY;
+  const dy = targetY - boss.position.y;
+  boss.position.y += dy * 0.02; // Smooth following
 };
 
 // Octopus Boss projectile throwing function
@@ -206,6 +215,27 @@ const octopusThrowProjectile = (
   return pool.acquire('inkBlob', boss.position, velocity, config.projectileSize);
 };
 
+// Render damage numbers
+const renderDamageNumber = (ctx: CanvasRenderingContext2D, x: number, y: number, elapsedTime: number) => {
+  const duration = 800;
+  const progress = Math.min(elapsedTime / duration, 1);
+  
+  // Float up and fade out
+  const offsetY = progress * 30;
+  const alpha = 1 - progress;
+  
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#FF0000';
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  ctx.font = 'bold 24px Arial';
+  ctx.textAlign = 'center';
+  
+  ctx.strokeText('-1', x, y - offsetY);
+  ctx.fillText('-1', x, y - offsetY);
+  ctx.globalAlpha = 1;
+};
+
 // Bat Boss rendering function
 const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
   const config = BOSS_CONFIGS.bat;
@@ -213,6 +243,11 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   
   // Flash white when hit
   const isFlashing = time - boss.hitFlashTime < 200;
+  
+  // Show damage number when hit
+  if (isFlashing) {
+    renderDamageNumber(ctx, x, y - 40, time - boss.hitFlashTime);
+  }
   
   // Animated wing flapping
   const wingFlap = Math.sin(time * 0.01) * 15;
@@ -327,16 +362,18 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
 };
 
 // Bat Boss update function
-const updateBatBoss = (boss: Boss, time: number): void => {
-  // Figure-eight pattern using Lissajous curve
+const updateBatBoss = (boss: Boss, time: number, playerY: number): void => {
+  // Figure-eight pattern using Lissajous curve, but centered on player's Y
   const t = time * 0.001; // Convert to seconds
-  const centerX = 300;
-  const centerY = 150;
-  const radiusX = 150;
-  const radiusY = 80;
+  const centerX = 350;
+  const radiusX = 100;
+  const radiusY = 60;
   
   boss.position.x = centerX + radiusX * Math.sin(t);
-  boss.position.y = centerY + radiusY * Math.sin(2 * t);
+  
+  // Follow player Y position with figure-eight offset
+  const targetY = playerY + radiusY * Math.sin(2 * t);
+  boss.position.y = targetY;
   
   // Update animation phase for wing flapping
   boss.animationPhase += 0.05;
@@ -847,7 +884,7 @@ const renderBossHealthBar = (ctx: CanvasRenderingContext2D, boss: Boss) => {
   
   // Background
   ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-  ctx.fillRect(barX - 5, barY - 25, barWidth + 10, 50);
+  ctx.fillRect(barX - 5, barY - 25, barWidth + 10, 70);
   
   // Boss name
   ctx.fillStyle = '#FFFFFF';
@@ -888,6 +925,14 @@ const renderBossHealthBar = (ctx: CanvasRenderingContext2D, boss: Boss) => {
   ctx.font = 'bold 12px Arial';
   ctx.textAlign = 'center';
   ctx.fillText(`${boss.health} / ${boss.maxHealth}`, GAME_CONFIG.gridWidth / 2, barY + 14);
+  
+  // Instruction text - pulsing
+  const pulseAlpha = 0.6 + Math.sin(Date.now() * 0.005) * 0.4;
+  ctx.globalAlpha = pulseAlpha;
+  ctx.fillStyle = '#FFD700';
+  ctx.font = 'bold 11px Arial';
+  ctx.fillText('⚔️ BOSS WILL CHASE YOU! COLLIDE TO ATTACK! ⚔️', GAME_CONFIG.gridWidth / 2, barY + 30);
+  ctx.globalAlpha = 1;
 };
 
 const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTime: number) => {
@@ -1401,9 +1446,9 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         } else if (newState.bossState.bossTransitionPhase === 'active') {
           // Update boss position
           if (boss.type === 'octopus') {
-            updateOctopusBoss(boss, Date.now());
+            updateOctopusBoss(boss, Date.now(), newState.player.position.y);
           } else {
-            updateBatBoss(boss, Date.now());
+            updateBatBoss(boss, Date.now(), newState.player.position.y);
           }
           
           // Throw projectiles
@@ -1436,6 +1481,9 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             const bounceVelocity = handleBossHit(boss);
             newState.player.velocity = bounceVelocity;
             playBossHitSound();
+            
+            // Award points for hitting boss
+            newState.score += 5;
             
             // Check if boss defeated
             if (boss.health <= 0) {
@@ -3477,7 +3525,10 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               Avoid flying witches and evil pumpkins! Collect shields for protection!
             </p>
             <p className="mb-1 text-red-600 font-semibold">
-              🐙 Face the OCTOPUS BOSS at 100 points! 🦇 BAT BOSS at 250!
+              🐙 OCTOPUS BOSS at 100 pts! 🦇 BAT BOSS at 250 pts!
+            </p>
+            <p className="mb-1 text-yellow-600 font-bold">
+              ⚔️ BOSS CHASES YOU! Collide to attack! Dodge projectiles!
             </p>
             <p className="text-purple-600 font-semibold">
               👻 Spooky sounds and blood moon included! 🌕

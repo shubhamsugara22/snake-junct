@@ -35,11 +35,12 @@ export type PowerUp = {
 
 export type Obstacle = {
   id: string;
-  type: 'pillar';
+  type: 'pillar' | 'ghost';
   position: Position;
   width: number;
   height: number;
   passed?: boolean;
+  floatOffset?: number; // For ghost floating animation
 };
 
 export type BossConfig = {

@@ -1189,6 +1189,23 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   }, []);
 
   const generateObstacle = useCallback((): Obstacle => {
+    // HALLOWEEN EVENT - 50% chance to spawn ghost instead of pillar
+    const isGhost = HALLOWEEN_EVENT_ACTIVE && Math.random() < 0.5;
+    
+    if (isGhost) {
+      return {
+        id: Math.random().toString(36).substring(2, 9),
+        type: 'ghost',
+        position: {
+          x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+          y: 80 + Math.random() * (GAME_CONFIG.gridHeight - 160), // Float anywhere in middle
+        },
+        width: 40,
+        height: 50,
+        floatOffset: Math.random() * Math.PI * 2, // Random starting phase for floating
+      };
+    }
+    
     return {
       id: Math.random().toString(36).substring(2, 9),
       type: 'pillar',
@@ -1401,6 +1418,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         }
       }
       return false;
+    } else if (obstacle.type === 'ghost') {
+      // HALLOWEEN EVENT - Ghost collision (circular)
+      const dx = playerPos.x - obstacle.position.x;
+      const dy = playerPos.y - obstacle.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const ghostRadius = obstacle.width / 2;
+      
+      return distance < (playerRadius + ghostRadius);
     } else {
       const obstacleLeft = obstacle.position.x - obstacle.width / 2;
       const obstacleRight = obstacle.position.x + obstacle.width / 2;
@@ -1434,8 +1459,6 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         );
 
         if (bossType) {
-          console.log(`🎮 BOSS BATTLE TRIGGERED! Type: ${bossType}, Score: ${newState.score}`);
-
           // Start boss encounter
           newState.bossState.bossEncounterActive = true;
           newState.bossState.bossTransitionPhase = 'entrance';
@@ -1808,6 +1831,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       newState.obstacles = newState.obstacles.map((obstacle) => {
         const newObstacle = { ...obstacle };
         newObstacle.position.x -= 1;
+        
+        // HALLOWEEN EVENT - Ghosts float up and down
+        if (newObstacle.type === 'ghost' && newObstacle.floatOffset !== undefined) {
+          newObstacle.floatOffset += 0.05;
+          newObstacle.position.y += Math.sin(newObstacle.floatOffset) * 1.5;
+        }
 
         // Check if player passed the obstacle (for scoring)
         if (
@@ -1823,6 +1852,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         if (newObstacle.position.x < -50) {
           newObstacle.position.x = GAME_CONFIG.gridWidth + Math.random() * 200 + 100;
           newObstacle.passed = false;
+          
+          // Reset ghost position if it's a ghost
+          if (newObstacle.type === 'ghost') {
+            newObstacle.position.y = 80 + Math.random() * (GAME_CONFIG.gridHeight - 160);
+            newObstacle.floatOffset = Math.random() * Math.PI * 2;
+          }
         }
 
         if (
@@ -3193,6 +3228,78 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           obstacle.width + 6,
           8
         );
+      } else if (obstacle.type === 'ghost') {
+        // HALLOWEEN EVENT - Draw flying ghost
+        const ghostX = obstacle.position.x;
+        const ghostY = obstacle.position.y;
+        const ghostSize = obstacle.width / 2;
+        
+        // Pulsing ethereal glow
+        const glowIntensity = 0.3 + Math.sin(Date.now() * 0.005 + (obstacle.floatOffset || 0)) * 0.2;
+        ctx.globalAlpha = 0.85;
+        ctx.shadowColor = '#E6E6FA';
+        ctx.shadowBlur = 20;
+        
+        // Ghost body - semi-transparent white
+        const ghostGradient = ctx.createRadialGradient(
+          ghostX,
+          ghostY - 5,
+          0,
+          ghostX,
+          ghostY,
+          ghostSize
+        );
+        ghostGradient.addColorStop(0, '#FFFFFF');
+        ghostGradient.addColorStop(0.7, '#F0F8FF');
+        ghostGradient.addColorStop(1, 'rgba(230, 230, 250, 0.5)');
+        
+        ctx.fillStyle = ghostGradient;
+        ctx.beginPath();
+        ctx.arc(ghostX, ghostY, ghostSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wavy bottom edge
+        ctx.beginPath();
+        ctx.moveTo(ghostX - ghostSize, ghostY);
+        for (let i = 0; i <= 4; i++) {
+          const waveX = ghostX - ghostSize + (i * ghostSize / 2);
+          const waveY = ghostY + ghostSize / 2 + Math.sin(Date.now() * 0.01 + i) * 3;
+          ctx.lineTo(waveX, waveY);
+        }
+        ctx.lineTo(ghostX + ghostSize, ghostY);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        
+        // Spooky eyes
+        ctx.fillStyle = '#4B0082';
+        ctx.beginPath();
+        ctx.arc(ghostX - 8, ghostY - 5, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ghostX + 8, ghostY - 5, 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Eye glow
+        ctx.fillStyle = '#9370DB';
+        ctx.globalAlpha = glowIntensity;
+        ctx.beginPath();
+        ctx.arc(ghostX - 8, ghostY - 5, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(ghostX + 8, ghostY - 5, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Spooky mouth
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(ghostX, ghostY + 5, 3, 0, Math.PI);
+        ctx.fill();
+        
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0;
       }
     });
 
@@ -3594,7 +3701,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           <>
             <p className="mb-1 text-orange-600 font-bold">🎃 HALLOWEEN SPECIAL EVENT! 🎃</p>
             <p className="mb-1">
-              Avoid flying witches and evil pumpkins! Collect shields for protection!
+              Avoid flying witches, evil pumpkins, and spooky ghosts! Collect shields for protection!
             </p>
             <p className="mb-1 text-red-600 font-semibold">
               🐙 OCTOPUS BOSS at 100 pts! 🦇 BAT BOSS at 250 pts!

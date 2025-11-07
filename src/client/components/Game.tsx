@@ -719,10 +719,14 @@ const GAME_CONFIG: GameConfig = {
   },
 };
 
-type BackgroundTheme = 'beach' | 'night' | 'retro' | 'desert' | 'halloween';
+type BackgroundTheme = 'beach' | 'night' | 'retro' | 'desert' | 'halloween' | 'underwater';
 type CharacterSkin = 'orange' | 'blue' | 'pink' | 'green' | 'purple' | 'witch' | 'ghost';
 
 const BACKGROUND_THEMES: BackgroundTheme[] = ['beach', 'night', 'retro', 'desert'];
+
+// UNDERWATER LEVEL - Currently disabled
+const UNDERWATER_LEVEL_ENABLED = false; // Set to true to enable
+const UNDERWATER_THEME: BackgroundTheme = 'underwater';
 
 // ============================================
 // 🎃 HALLOWEEN EVENT - TEMPORARY 🎃
@@ -1188,7 +1192,67 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     };
   }, []);
 
-  const generateObstacle = useCallback((): Obstacle => {
+  const generateObstacle = useCallback((theme: BackgroundTheme): Obstacle => {
+    // UNDERWATER LEVEL - Generate underwater obstacles
+    if (theme === 'underwater' && UNDERWATER_LEVEL_ENABLED) {
+      const obstacleTypes: Array<'fish' | 'eel' | 'shark' | 'coral'> = ['fish', 'eel', 'shark', 'coral'];
+      const randomType = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+      
+      if (randomType === 'coral') {
+        // Coral pillars (like normal pillars but underwater themed)
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'coral',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: GAME_CONFIG.gridHeight - 60,
+          },
+          width: 25,
+          height: 80,
+        };
+      } else if (randomType === 'fish') {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'fish',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: 80 + Math.random() * (GAME_CONFIG.gridHeight - 160),
+          },
+          width: 30,
+          height: 20,
+          floatOffset: Math.random() * Math.PI * 2,
+          swimDirection: Math.random() > 0.5 ? 1 : -1,
+        };
+      } else if (randomType === 'eel') {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'eel',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: 100 + Math.random() * (GAME_CONFIG.gridHeight - 200),
+          },
+          width: 50,
+          height: 15,
+          floatOffset: Math.random() * Math.PI * 2,
+          swimDirection: 1,
+        };
+      } else {
+        // Shark
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'shark',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: 120 + Math.random() * (GAME_CONFIG.gridHeight - 240),
+          },
+          width: 60,
+          height: 30,
+          floatOffset: Math.random() * Math.PI * 2,
+          swimDirection: 1,
+        };
+      }
+    }
+    
     // HALLOWEEN EVENT - 50% chance to spawn ghost instead of pillar
     const isGhost = HALLOWEEN_EVENT_ACTIVE && Math.random() < 0.5;
     
@@ -1235,10 +1299,15 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         Math.round(baseObstacleCount * (0.7 + profile.skillLevel * 0.6))
       );
 
-      // Randomly select background theme (or force Halloween if event active)
-      const randomTheme = HALLOWEEN_EVENT_ACTIVE
-        ? HALLOWEEN_THEME
-        : BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)] || 'beach';
+      // Randomly select background theme (or force special themes if active)
+      let randomTheme: BackgroundTheme;
+      if (UNDERWATER_LEVEL_ENABLED) {
+        randomTheme = UNDERWATER_THEME;
+      } else if (HALLOWEEN_EVENT_ACTIVE) {
+        randomTheme = HALLOWEEN_THEME;
+      } else {
+        randomTheme = BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)] || 'beach';
+      }
       setBackgroundTheme(randomTheme);
 
       // Create a combined array of all obstacles with proper spacing
@@ -1286,7 +1355,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           snakes.push(snake);
           currentX += spacing;
         } else if (item.type === 'pillar') {
-          const obstacle = generateObstacle();
+          const obstacle = generateObstacle(randomTheme);
           obstacle.position.x = currentX;
           obstacles.push(obstacle);
           currentX += spacing;
@@ -1426,6 +1495,33 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       const ghostRadius = obstacle.width / 2;
       
       return distance < (playerRadius + ghostRadius);
+    } else if (obstacle.type === 'fish' || obstacle.type === 'eel' || obstacle.type === 'shark') {
+      // UNDERWATER LEVEL - Fish/eel/shark collision (elliptical)
+      const dx = playerPos.x - obstacle.position.x;
+      const dy = playerPos.y - obstacle.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const creatureRadius = Math.max(obstacle.width, obstacle.height) / 2;
+      
+      return distance < (playerRadius + creatureRadius);
+    } else if (obstacle.type === 'coral') {
+      // UNDERWATER LEVEL - Coral collision (same as pillar)
+      const gapHeight = 100;
+      const gapCenter = GAME_CONFIG.gridHeight / 2;
+      const topCoralHeight = gapCenter - gapHeight / 2;
+      const bottomCoralStart = gapCenter + gapHeight / 2;
+
+      const obstacleLeft = obstacle.position.x - obstacle.width / 2;
+      const obstacleRight = obstacle.position.x + obstacle.width / 2;
+
+      if (playerPos.x + playerRadius > obstacleLeft && playerPos.x - playerRadius < obstacleRight) {
+        if (playerPos.y - playerRadius < topCoralHeight) {
+          return true;
+        }
+        if (playerPos.y + playerRadius > bottomCoralStart) {
+          return true;
+        }
+      }
+      return false;
     } else {
       const obstacleLeft = obstacle.position.x - obstacle.width / 2;
       const obstacleRight = obstacle.position.x + obstacle.width / 2;
@@ -1836,6 +1932,13 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         if (newObstacle.type === 'ghost' && newObstacle.floatOffset !== undefined) {
           newObstacle.floatOffset += 0.05;
           newObstacle.position.y += Math.sin(newObstacle.floatOffset) * 1.5;
+        }
+        
+        // UNDERWATER LEVEL - Fish, eels, and sharks swim with wave motion
+        if ((newObstacle.type === 'fish' || newObstacle.type === 'eel' || newObstacle.type === 'shark') && 
+            newObstacle.floatOffset !== undefined) {
+          newObstacle.floatOffset += 0.04;
+          newObstacle.position.y += Math.sin(newObstacle.floatOffset) * 2;
         }
 
         // Check if player passed the obstacle (for scoring)
@@ -2321,6 +2424,116 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           ctx.lineTo(cactusX + 12, GAME_CONFIG.gridHeight - cactusHeight + j);
           ctx.stroke();
         }
+      }
+    } else if (backgroundTheme === 'underwater') {
+      // UNDERWATER LEVEL - Ocean background
+      const waterGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
+      waterGradient.addColorStop(0, '#1E90FF'); // Deep blue at top
+      waterGradient.addColorStop(0.5, '#4682B4'); // Steel blue middle
+      waterGradient.addColorStop(1, '#2F4F4F'); // Dark slate gray at bottom
+      ctx.fillStyle = waterGradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+      
+      // Animated bubbles
+      const bubbleCount = 15;
+      for (let i = 0; i < bubbleCount; i++) {
+        const bubbleX = (i * 47 + Date.now() * 0.02) % GAME_CONFIG.gridWidth;
+        const bubbleY = (i * 31 + Date.now() * 0.05) % GAME_CONFIG.gridHeight;
+        const bubbleSize = 2 + (i % 3);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.beginPath();
+        ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Sea floor
+      const seaFloorY = GAME_CONFIG.gridHeight - 60;
+      ctx.fillStyle = '#8B7355'; // Sandy brown
+      ctx.fillRect(0, seaFloorY, GAME_CONFIG.gridWidth, 60);
+      
+      // Sand texture
+      ctx.fillStyle = '#A0826D';
+      for (let x = 0; x < GAME_CONFIG.gridWidth; x += 20) {
+        const waveHeight = Math.sin(x * 0.1) * 3;
+        ctx.fillRect(x, seaFloorY + waveHeight, 15, 3);
+      }
+      
+      // Shells on sea floor
+      ctx.fillStyle = '#FFE4C4';
+      const shellPositions = [80, 200, 350, 480];
+      shellPositions.forEach((shellX) => {
+        // Shell body
+        ctx.beginPath();
+        ctx.arc(shellX, seaFloorY + 10, 6, 0, Math.PI);
+        ctx.fill();
+        
+        // Shell ridges
+        ctx.strokeStyle = '#DEB887';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(shellX - 6 + i * 4, seaFloorY + 10);
+          ctx.lineTo(shellX - 6 + i * 4, seaFloorY + 4);
+          ctx.stroke();
+        }
+      });
+      
+      // Coral decorations on sea floor
+      ctx.fillStyle = '#FF6B6B';
+      const coralPositions = [120, 280, 420];
+      coralPositions.forEach((coralX, idx) => {
+        const coralHeight = 20 + (idx % 2) * 10;
+        
+        // Coral branches
+        ctx.beginPath();
+        ctx.moveTo(coralX, seaFloorY);
+        ctx.lineTo(coralX - 5, seaFloorY - coralHeight * 0.6);
+        ctx.lineTo(coralX - 8, seaFloorY - coralHeight);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(coralX, seaFloorY);
+        ctx.lineTo(coralX + 5, seaFloorY - coralHeight * 0.7);
+        ctx.lineTo(coralX + 8, seaFloorY - coralHeight);
+        ctx.stroke();
+        
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#FF6B6B';
+        ctx.beginPath();
+        ctx.moveTo(coralX, seaFloorY);
+        ctx.lineTo(coralX, seaFloorY - coralHeight);
+        ctx.stroke();
+      });
+      
+      // Seaweed swaying
+      ctx.strokeStyle = '#2E8B57';
+      ctx.lineWidth = 4;
+      const seaweedPositions = [50, 180, 320, 500];
+      seaweedPositions.forEach((seaweedX, idx) => {
+        const sway = Math.sin(Date.now() * 0.002 + idx) * 10;
+        const seaweedHeight = 40 + (idx % 3) * 15;
+        
+        ctx.beginPath();
+        ctx.moveTo(seaweedX, seaFloorY);
+        ctx.quadraticCurveTo(
+          seaweedX + sway,
+          seaFloorY - seaweedHeight / 2,
+          seaweedX + sway * 1.5,
+          seaFloorY - seaweedHeight
+        );
+        ctx.stroke();
+      });
+      
+      // Light rays from surface
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 30;
+      for (let i = 0; i < 3; i++) {
+        const rayX = 100 + i * 200;
+        ctx.beginPath();
+        ctx.moveTo(rayX, 0);
+        ctx.lineTo(rayX + 50, GAME_CONFIG.gridHeight);
+        ctx.stroke();
       }
     }
 
@@ -3300,6 +3513,176 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
+      } else if (obstacle.type === 'fish') {
+        // UNDERWATER LEVEL - Draw fish
+        const fishX = obstacle.position.x;
+        const fishY = obstacle.position.y;
+        const fishWidth = obstacle.width;
+        const fishHeight = obstacle.height;
+        
+        // Fish body (oval)
+        ctx.fillStyle = '#FFA500';
+        ctx.beginPath();
+        ctx.ellipse(fishX, fishY, fishWidth / 2, fishHeight / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Fish tail
+        ctx.fillStyle = '#FF8C00';
+        ctx.beginPath();
+        ctx.moveTo(fishX - fishWidth / 2, fishY);
+        ctx.lineTo(fishX - fishWidth / 2 - 10, fishY - 8);
+        ctx.lineTo(fishX - fishWidth / 2 - 10, fishY + 8);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Fish eye
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(fishX + fishWidth / 4, fishY - 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Fish scales
+        ctx.strokeStyle = '#FF6347';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(fishX - 5 + i * 5, fishY, 3, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      } else if (obstacle.type === 'eel') {
+        // UNDERWATER LEVEL - Draw eel
+        const eelX = obstacle.position.x;
+        const eelY = obstacle.position.y;
+        const eelLength = obstacle.width;
+        
+        // Eel body (wavy line)
+        ctx.strokeStyle = '#4B0082';
+        ctx.lineWidth = obstacle.height;
+        ctx.lineCap = 'round';
+        
+        ctx.beginPath();
+        ctx.moveTo(eelX - eelLength / 2, eelY);
+        for (let i = 0; i <= 5; i++) {
+          const segX = eelX - eelLength / 2 + (i * eelLength) / 5;
+          const segY = eelY + Math.sin(Date.now() * 0.005 + i) * 5;
+          ctx.lineTo(segX, segY);
+        }
+        ctx.stroke();
+        
+        // Eel head
+        ctx.fillStyle = '#4B0082';
+        ctx.beginPath();
+        ctx.arc(eelX + eelLength / 2, eelY, obstacle.height / 2 + 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Eel eyes (glowing)
+        ctx.fillStyle = '#FFFF00';
+        ctx.shadowColor = '#FFFF00';
+        ctx.shadowBlur = 5;
+        ctx.beginPath();
+        ctx.arc(eelX + eelLength / 2 - 3, eelY - 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(eelX + eelLength / 2 + 3, eelY - 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      } else if (obstacle.type === 'shark') {
+        // UNDERWATER LEVEL - Draw shark
+        const sharkX = obstacle.position.x;
+        const sharkY = obstacle.position.y;
+        const sharkWidth = obstacle.width;
+        const sharkHeight = obstacle.height;
+        
+        // Shark body
+        ctx.fillStyle = '#708090';
+        ctx.beginPath();
+        ctx.ellipse(sharkX, sharkY, sharkWidth / 2, sharkHeight / 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Shark fin (dorsal)
+        ctx.fillStyle = '#556B2F';
+        ctx.beginPath();
+        ctx.moveTo(sharkX, sharkY - sharkHeight / 2);
+        ctx.lineTo(sharkX - 8, sharkY - sharkHeight / 2 - 12);
+        ctx.lineTo(sharkX + 5, sharkY - sharkHeight / 2);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Shark tail
+        ctx.fillStyle = '#708090';
+        ctx.beginPath();
+        ctx.moveTo(sharkX - sharkWidth / 2, sharkY);
+        ctx.lineTo(sharkX - sharkWidth / 2 - 15, sharkY - 10);
+        ctx.lineTo(sharkX - sharkWidth / 2 - 15, sharkY + 10);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Shark eye
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(sharkX + sharkWidth / 3, sharkY - 5, 3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Shark teeth
+        ctx.fillStyle = '#FFFFFF';
+        for (let i = 0; i < 5; i++) {
+          ctx.beginPath();
+          ctx.moveTo(sharkX + sharkWidth / 4 + i * 4, sharkY + 5);
+          ctx.lineTo(sharkX + sharkWidth / 4 + i * 4 - 2, sharkY + 10);
+          ctx.lineTo(sharkX + sharkWidth / 4 + i * 4 + 2, sharkY + 10);
+          ctx.closePath();
+          ctx.fill();
+        }
+      } else if (obstacle.type === 'coral') {
+        // UNDERWATER LEVEL - Draw coral pillars
+        const gapHeight = 100;
+        const gapCenter = GAME_CONFIG.gridHeight / 2;
+        const topCoralHeight = gapCenter - gapHeight / 2;
+        const bottomCoralHeight = GAME_CONFIG.gridHeight - (gapCenter + gapHeight / 2);
+        
+        // Coral gradient
+        const coralGradient = ctx.createLinearGradient(
+          obstacle.position.x - obstacle.width / 2,
+          0,
+          obstacle.position.x + obstacle.width / 2,
+          0
+        );
+        coralGradient.addColorStop(0, '#FF6B6B');
+        coralGradient.addColorStop(0.5, '#FF8787');
+        coralGradient.addColorStop(1, '#FFA5A5');
+        
+        ctx.fillStyle = coralGradient;
+        
+        // Top coral
+        ctx.fillRect(obstacle.position.x - obstacle.width / 2, 0, obstacle.width, topCoralHeight);
+        
+        // Bottom coral
+        ctx.fillRect(
+          obstacle.position.x - obstacle.width / 2,
+          gapCenter + gapHeight / 2,
+          obstacle.width,
+          bottomCoralHeight
+        );
+        
+        // Coral texture (bumpy)
+        ctx.fillStyle = '#FF5252';
+        for (let y = 10; y < topCoralHeight; y += 15) {
+          for (let side = 0; side < 2; side++) {
+            const bumpX = obstacle.position.x + (side === 0 ? -obstacle.width / 2 : obstacle.width / 2);
+            ctx.beginPath();
+            ctx.arc(bumpX, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        
+        for (let y = gapCenter + gapHeight / 2 + 10; y < GAME_CONFIG.gridHeight; y += 15) {
+          for (let side = 0; side < 2; side++) {
+            const bumpX = obstacle.position.x + (side === 0 ? -obstacle.width / 2 : obstacle.width / 2);
+            ctx.beginPath();
+            ctx.arc(bumpX, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
       }
     });
 

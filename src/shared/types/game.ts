@@ -35,12 +35,13 @@ export type PowerUp = {
 
 export type Obstacle = {
   id: string;
-  type: 'pillar' | 'ghost';
+  type: 'pillar' | 'ghost' | 'fish' | 'eel' | 'shark' | 'coral';
   position: Position;
   width: number;
   height: number;
   passed?: boolean;
-  floatOffset?: number; // For ghost floating animation
+  floatOffset?: number; // For ghost/fish floating animation
+  swimDirection?: number; // For fish/eel swimming pattern
 };
 
 export type BossConfig = {

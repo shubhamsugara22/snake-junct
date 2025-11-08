@@ -1686,7 +1686,29 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             newState.bossState.bossTransitionPhase = null;
             newState.bossState.projectiles = [];
 
-            // Resume normal enemy spawning (they'll respawn naturally)
+            // Resume normal enemy spawning - regenerate snakes and obstacles
+            console.log('🎮 Boss defeated! Respawning enemies...');
+            
+            // Regenerate snakes
+            const profile = getPlayerProfile(username);
+            const baseSnakeCount = GAME_CONFIG.snakeCount[newState.level];
+            const snakeCount = Math.max(1, Math.round(baseSnakeCount * (0.7 + profile.skillLevel * 0.6)));
+            
+            for (let i = 0; i < snakeCount; i++) {
+              const snake = generateSnake(newState.level, profile);
+              snake.position.x = GAME_CONFIG.gridWidth + 100 + i * 250;
+              newState.snakes.push(snake);
+            }
+            
+            // Regenerate obstacles
+            const baseObstacleCount = GAME_CONFIG.obstacleCount[newState.level];
+            const obstacleCount = Math.max(1, Math.round(baseObstacleCount * (0.7 + profile.skillLevel * 0.6)));
+            
+            for (let i = 0; i < obstacleCount; i++) {
+              const obstacle = generateObstacle(backgroundTheme);
+              obstacle.position.x = GAME_CONFIG.gridWidth + 200 + i * 300;
+              newState.obstacles.push(obstacle);
+            }
           }
         }
       }

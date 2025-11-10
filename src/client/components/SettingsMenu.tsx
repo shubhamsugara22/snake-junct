@@ -76,3 +76,8 @@ export const SettingsMenu = ({ isVisible, onClose, soundVolume, onVolumeChange }
     </div>
   );
 };
+
+// Add onShowTutorial prop
+type SettingsMenuPropsExtended = SettingsMenuProps & {
+  onShowTutorial?: () => void;
+};

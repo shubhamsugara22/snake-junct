@@ -15,7 +15,7 @@ export const App = () => {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
   const [showPowerUps, setShowPowerUps] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false); // Disabled intro for testing
 
   useEffect(() => {
     getHighScore();

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   GameState,
   GameLevel,
@@ -12,9 +12,6 @@ import {
   BOSS_CONFIGS,
   BOSS_BATTLES_ENABLED,
 } from '../../shared/types/game';
-import { Tutorial } from './Tutorial';
-import { PauseMenu } from './PauseMenu';
-import { SettingsMenu } from './SettingsMenu';
 
 // ProjectilePool class for performance optimization
 class ProjectilePool {
@@ -1109,40 +1106,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   const [playerProfile, setPlayerProfile] = useState<PlayerProfile>(() =>
     getPlayerProfile(username)
   );
-
-  const [isPaused, setIsPaused] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [soundVolume, setSoundVolume] = useState(0.3);
-  const [showTutorial, setShowTutorial] = useState(false);
-
-  // Check if first-time user and load settings
-  useEffect(() => {
-    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
-    console.log('🎓 Tutorial check:', hasSeenTutorial);
-    if (!hasSeenTutorial) {
-      console.log('🎓 Showing tutorial for first-time user');
-      setShowTutorial(true);
-    }
-    
-    const savedVolume = localStorage.getItem('soundVolume');
-    if (savedVolume) {
-      setSoundVolume(parseFloat(savedVolume));
-    }
-  }, []);
-  useEffect((=> {
-    const hasSeenTutorial = localStorage.getItem('hasSeenTal');
-    if (!hasSeenTu{
-      setShowTutoria
-    }
-    
-    // Load savs
-    const savedVole');
-    if (savedVolume) {
-      setSoun
-    }
-  }, []);
-
-  const [gameState, setGtate>({GameSseState<tate] = umeSalume));loat(savedVo(parseFdVolumeundVolum'soetItem(Storage.gme = localud settingetrue);l() torialutori) 
+  const [gameState, setGameState] = useState<GameState>({
     player: {
       position: { x: 150, y: GAME_CONFIG.gridHeight / 2 },
       velocity: 0,
@@ -2084,7 +2048,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   // Game loop
   useEffect(() => {
-    if (gameState.isPlaying && !isPaused) {
+    if (gameState.isPlaying) {
       gameLoopRef.current = window.setInterval(updateGame, 16);
     } else {
       if (gameLoopRef.current !== undefined) {
@@ -2097,7 +2061,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         window.clearInterval(gameLoopRef.current);
       }
     };
-  }, [gameState.isPlaying, isPaused, updateGame]);
+  }, [gameState.isPlaying, updateGame]);
 
   // Render game with Canvas
   useEffect(() => {
@@ -3780,16 +3744,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   // Handle keyboard input
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      // Pause/Resume with ESC or P key
-      if (e.code === 'Escape' || e.code === 'KeyP') {
-        if (gameState.isPlaying && !gameState.isGameOver) {
-          e.preventDefault();
-          setIsPaused(prev => !prev);
-        }
-      }
-      
-      // Jump with Space or Arrow Up (only if not paused)
-      if ((e.code === 'Space' || e.code === 'ArrowUp') && !isPaused) {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
         e.preventDefault();
         jump();
       }
@@ -3797,58 +3752,10 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [jump, isPaused, gameState.isPlaying, gameState.isGameOver]);
+  }, [jump]);
 
   return (
-    <>
-      {/* TEST BUTTON - Always visible */}
-      <button
-        onClick={() => {
-          console.log('🧪 TEST BUTTON CLICKED!');
-          alert('Test button works!');
-          setShowTutorial(true);
-        }}
-        className="fixed top-20 left-4 z-[9999] px-6 py-3 bg-red-600 text-white font-bold rounded-lg shadow-lg text-xl"
-        style={{ position: 'fixed', top: '80px', left: '16px', zIndex: 9999 }}
-      >
-        🧪 TEST
-      </button>
-
-      {/* Tutorial & Settings Buttons - Always on top */}
-      {!gameState.isPlaying && !gameState.isGameOver && (
-        <div className="fixed top-4 right-4 z-[9999] flex flex-col sm:flex-row gap-2">
-          <button
-            onClick={() => {
-              console.log('📚 Tutorial button clicked');
-              setShowTutorial(true);
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
-          >
-            📚 Tutorial
-          </button>
-          <button
-            onClick={() => {
-              console.log('⚙️ Settings button clicked');
-              setShowSettings(true);
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
-          >
-            ⚙️ Settings
-          </button>
-        </div>
-      )}
-
-      {/* Pause Button - Always on top */}
-      {gameState.isPlaying && !gameState.isGameOver && (
-        <button
-          onClick={() => setIsPaused(prev => !prev)}
-          className="fixed top-4 right-4 z-[9999] px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
-        >
-          {isPaused ? '▶️ Resume' : '⏸️ Pause'}
-        </button>
-      )}
-
-      <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full">
+    <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full">
         <div className="flex flex-col items-center gap-3 w-full">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 text-center animate-fade-in">
           <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
@@ -4225,35 +4132,6 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         )}
       </div>
 
-      {/* Tutorial Modal */}
-      <Tutorial isVisible={showTutorial} onClose={() => setShowTutorial(false)} />
-
-      {/* Pause Menu */}
-      <PauseMenu
-        isVisible={isPaused && gameState.isPlaying && !gameState.isGameOver}
-        onResume={() => setIsPaused(false)}
-        onRestart={() => {
-          setIsPaused(false);
-          restartGame();
-        }}
-        onSettings={() => {
-          setShowSettings(true);
-        }}
-        onQuit={() => {
-          setIsPaused(false);
-          setGameState(prev => ({ ...prev, isPlaying: false, isGameOver: true }));
-        }}
-      />
-
-      {/* Settings Menu */}
-      <SettingsMenu
-        isVisible={showSettings}
-        onClose={() => setShowSettings(false)}
-        soundVolume={soundVolume}
-        onVolumeChange={setSoundVolume}
-      />
-
-      </div>
-    </>
+    </div>
   );
 };

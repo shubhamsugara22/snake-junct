@@ -12,6 +12,7 @@ import {
   BOSS_CONFIGS,
   BOSS_BATTLES_ENABLED,
 } from '../../shared/types/game';
+import { SettingsButton } from './SettingsButton';
 
 // ProjectilePool class for performance optimization
 class ProjectilePool {
@@ -1136,6 +1137,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>('beach');
   const [showGameOverUI, setShowGameOverUI] = useState(false);
+  const [soundVolume, setSoundVolume] = useState(1.0);
 
   // Handle delayed game over screen (5 seconds for screenshots)
   useEffect(() => {
@@ -3755,7 +3757,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   }, [jump]);
 
   return (
-    <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full">
+    <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full" style={{ position: 'relative' }}>
+      <SettingsButton soundVolume={soundVolume} onVolumeChange={setSoundVolume} />
         <div className="flex flex-col items-center gap-3 w-full">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 text-center animate-fade-in">
           <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">

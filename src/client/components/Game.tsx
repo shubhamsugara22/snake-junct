@@ -1138,6 +1138,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   const [backgroundTheme, setBackgroundTheme] = useState<BackgroundTheme>('beach');
   const [showGameOverUI, setShowGameOverUI] = useState(false);
   const [soundVolume, setSoundVolume] = useState(1.0);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Handle delayed game over screen (5 seconds for screenshots)
   useEffect(() => {
@@ -2015,7 +2016,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   }, [checkSnakeCollision, checkObstacleCollision, onScoreUpdate]);
 
   const jump = useCallback(() => {
-    if (!gameState.isPlaying || gameState.isGameOver) return;
+    if (!gameState.isPlaying || gameState.isGameOver || isPaused) return;
 
     playJumpSound();
 
@@ -2035,7 +2036,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         velocity: GAME_CONFIG.jumpForce,
       },
     }));
-  }, [gameState.isPlaying, gameState.isGameOver]);
+  }, [gameState.isPlaying, gameState.isGameOver, isPaused]);
 
   const startGame = useCallback(
     (level: GameLevel) => {
@@ -2050,7 +2051,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   // Game loop
   useEffect(() => {
-    if (gameState.isPlaying) {
+    if (gameState.isPlaying && !isPaused) {
       gameLoopRef.current = window.setInterval(updateGame, 16);
     } else {
       if (gameLoopRef.current !== undefined) {
@@ -2063,7 +2064,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         window.clearInterval(gameLoopRef.current);
       }
     };
-  }, [gameState.isPlaying, updateGame]);
+  }, [gameState.isPlaying, isPaused, updateGame]);
 
   // Render game with Canvas
   useEffect(() => {
@@ -3759,6 +3760,30 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   return (
     <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full" style={{ position: 'relative' }}>
       <SettingsButton soundVolume={soundVolume} onVolumeChange={setSoundVolume} />
+      {gameState.isPlaying && (
+        <button
+          onClick={() => setIsPaused(!isPaused)}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '60px',
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            border: '2px solid #fff',
+            background: 'rgba(0, 0, 0, 0.5)',
+            color: '#fff',
+            fontSize: '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          {isPaused ? '▶️' : '⏸️'}
+        </button>
+      )}
         <div className="flex flex-col items-center gap-3 w-full">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 text-center animate-fade-in">
           <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
@@ -3999,6 +4024,16 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             jump();
           }}
         />
+
+        {isPaused && gameState.isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 rounded-lg">
+            <div className="text-center text-white">
+              <div className="text-6xl mb-4">⏸️</div>
+              <div className="text-3xl font-bold mb-2">PAUSED</div>
+              <div className="text-lg">Click pause button to resume</div>
+            </div>
+          </div>
+        )}
 
         {gameState.isGameOver && !showGameOverUI && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">

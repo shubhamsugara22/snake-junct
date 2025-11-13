@@ -60,16 +60,16 @@ class ProjectilePool {
 // Boss trigger and lifecycle management functions
 const checkBossTrigger = (score: number, defeatedBosses: BossType[], halloweenMode: boolean): BossType | null => {
   if (halloweenMode) {
-    // Halloween bosses
-    if (score >= 250 && !defeatedBosses.includes('bat')) {
+    // Halloween bosses - ONLY octopus and bat
+    if (score >= 500 && !defeatedBosses.includes('bat')) {
       return 'bat';
     }
     if (score >= 100 && !defeatedBosses.includes('octopus')) {
       return 'octopus';
     }
   } else {
-    // Normal mode bosses
-    if (score >= 250 && !defeatedBosses.includes('missile')) {
+    // Normal mode bosses - ONLY cat and missile
+    if (score >= 500 && !defeatedBosses.includes('missile')) {
       return 'missile';
     }
     if (score >= 100 && !defeatedBosses.includes('cat')) {
@@ -477,7 +477,7 @@ const batThrowProjectile = (
 // 🐱 CAT BOSS (Normal Mode) 🐱
 // ============================================
 
-// Cat Boss rendering function
+// Cat Boss rendering function - DISTINCT ORANGE CAT
 const renderCatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
   const config = BOSS_CONFIGS.cat;
   const { x, y } = boss.position;
@@ -487,87 +487,208 @@ const renderCatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
     renderDamageNumber(ctx, x, y - 50, time - boss.hitFlashTime);
   }
 
-  // Cat body - orange with stripes
-  const bodyGradient = ctx.createRadialGradient(x, y, 0, x, y, 35);
-  bodyGradient.addColorStop(0, isFlashing ? '#FFFFFF' : config.colors.primary);
-  bodyGradient.addColorStop(1, isFlashing ? '#FFFFFF' : config.colors.secondary);
+  // LARGER Cat body - orange with dark stripes
+  const bodyGradient = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, 45);
+  bodyGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#FFB347');
+  bodyGradient.addColorStop(0.5, isFlashing ? '#FFFFFF' : '#FF8C00');
+  bodyGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#D2691E');
   
   ctx.fillStyle = bodyGradient;
+  ctx.shadowColor = 'rgba(255, 140, 0, 0.5)';
+  ctx.shadowBlur = 15;
   ctx.beginPath();
-  ctx.ellipse(x, y, 35, 30, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Cat head
-  ctx.beginPath();
-  ctx.arc(x, y - 25, 25, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Cat ears - triangular
-  ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
-  ctx.beginPath();
-  ctx.moveTo(x - 20, y - 35);
-  ctx.lineTo(x - 10, y - 50);
-  ctx.lineTo(x - 5, y - 35);
-  ctx.closePath();
-  ctx.fill();
-  
-  ctx.beginPath();
-  ctx.moveTo(x + 20, y - 35);
-  ctx.lineTo(x + 10, y - 50);
-  ctx.lineTo(x + 5, y - 35);
-  ctx.closePath();
-  ctx.fill();
-
-  // Eyes - glowing yellow
-  ctx.fillStyle = '#FFD700';
-  ctx.shadowColor = '#FFD700';
-  ctx.shadowBlur = 10;
-  ctx.beginPath();
-  ctx.arc(x - 8, y - 28, 4, 0, Math.PI * 2);
-  ctx.arc(x + 8, y - 28, 4, 0, Math.PI * 2);
+  ctx.ellipse(x, y, 45, 35, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Whiskers
-  ctx.strokeStyle = '#000';
-  ctx.lineWidth = 1;
-  for (let i = -1; i <= 1; i++) {
+  // Tiger stripes on body
+  ctx.strokeStyle = isFlashing ? '#FFFFFF' : '#8B4513';
+  ctx.lineWidth = 3;
+  for (let i = -2; i <= 2; i++) {
     ctx.beginPath();
-    ctx.moveTo(x - 25, y - 20 + i * 3);
-    ctx.lineTo(x - 35, y - 22 + i * 5);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x + 25, y - 20 + i * 3);
-    ctx.lineTo(x + 35, y - 22 + i * 5);
+    ctx.moveTo(x + i * 12, y - 25);
+    ctx.quadraticCurveTo(x + i * 12 + 5, y, x + i * 12, y + 25);
     ctx.stroke();
   }
 
-  // Tail - wavy
-  ctx.strokeStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
-  ctx.lineWidth = 8;
+  // LARGER Cat head
+  const headGradient = ctx.createRadialGradient(x - 3, y - 28, 0, x, y - 25, 30);
+  headGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#FFB347');
+  headGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#FF8C00');
+  ctx.fillStyle = headGradient;
   ctx.beginPath();
-  ctx.moveTo(x + 30, y + 10);
-  const tailWave = Math.sin(time * 0.01) * 10;
-  ctx.quadraticCurveTo(x + 45, y + tailWave, x + 55, y - 10);
+  ctx.arc(x, y - 25, 30, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cat ears - LARGER triangular with pink inside
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : '#FF8C00';
+  ctx.beginPath();
+  ctx.moveTo(x - 25, y - 40);
+  ctx.lineTo(x - 12, y - 58);
+  ctx.lineTo(x - 8, y - 40);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.moveTo(x + 25, y - 40);
+  ctx.lineTo(x + 12, y - 58);
+  ctx.lineTo(x + 8, y - 40);
+  ctx.closePath();
+  ctx.fill();
+
+  // Pink ear insides
+  ctx.fillStyle = '#FFB6C1';
+  ctx.beginPath();
+  ctx.moveTo(x - 20, y - 42);
+  ctx.lineTo(x - 14, y - 52);
+  ctx.lineTo(x - 12, y - 42);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.moveTo(x + 20, y - 42);
+  ctx.lineTo(x + 14, y - 52);
+  ctx.lineTo(x + 12, y - 42);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eyes - LARGE glowing green cat eyes
+  ctx.fillStyle = '#00FF00';
+  ctx.shadowColor = '#00FF00';
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.ellipse(x - 10, y - 28, 6, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + 10, y - 28, 6, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Vertical slit pupils
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(x - 10 - 1, y - 32, 2, 8);
+  ctx.fillRect(x + 10 - 1, y - 32, 2, 8);
+
+  // Eye highlights
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(x - 8, y - 30, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 12, y - 30, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pink nose
+  ctx.fillStyle = '#FF69B4';
+  ctx.beginPath();
+  ctx.moveTo(x, y - 18);
+  ctx.lineTo(x - 3, y - 15);
+  ctx.lineTo(x + 3, y - 15);
+  ctx.closePath();
+  ctx.fill();
+
+  // Mouth
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y - 15);
+  ctx.lineTo(x, y - 12);
+  ctx.moveTo(x, y - 12);
+  ctx.quadraticCurveTo(x - 5, y - 10, x - 8, y - 12);
+  ctx.moveTo(x, y - 12);
+  ctx.quadraticCurveTo(x + 5, y - 10, x + 8, y - 12);
   ctx.stroke();
+
+  // LONG whiskers
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 1.5;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x - 30, y - 20 + i * 4);
+    ctx.lineTo(x - 50, y - 22 + i * 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 30, y - 20 + i * 4);
+    ctx.lineTo(x + 50, y - 22 + i * 6);
+    ctx.stroke();
+  }
+
+  // ANIMATED wavy tail - LARGER
+  ctx.strokeStyle = isFlashing ? '#FFFFFF' : '#FF8C00';
+  ctx.lineWidth = 12;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x + 40, y + 15);
+  const tailWave = Math.sin(time * 0.008) * 15;
+  ctx.quadraticCurveTo(x + 60, y + tailWave, x + 75, y - 15 + tailWave * 0.5);
+  ctx.stroke();
+
+  // Tail stripes
+  ctx.strokeStyle = '#8B4513';
+  ctx.lineWidth = 3;
+  for (let i = 0; i < 3; i++) {
+    const t = i / 3;
+    const tailX = x + 40 + t * 35;
+    const tailY = y + 15 + Math.sin(time * 0.008) * 15 * (1 - t) - t * 30;
+    ctx.beginPath();
+    ctx.arc(tailX, tailY, 1, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Paws
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : '#FF8C00';
+  ctx.beginPath();
+  ctx.ellipse(x - 25, y + 30, 8, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(x + 25, y + 30, 8, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Paw pads
+  ctx.fillStyle = '#FFB6C1';
+  ctx.beginPath();
+  ctx.arc(x - 25, y + 35, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(x + 25, y + 35, 4, 0, Math.PI * 2);
+  ctx.fill();
 };
 
-// Cat Boss update function
+// Cat Boss update function - CHASES PLAYER!
 const updateCatBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
-  // Smooth sine wave movement
-  const baseY = 200;
-  const amplitude = 80;
-  const frequency = 0.002;
-  const newY = baseY + Math.sin(time * frequency) * amplitude;
-
-  // Horizontal movement
-  const baseX = 450;
-  const xAmplitude = 50;
-  const newX = baseX + Math.sin(time * frequency * 0.7) * xAmplitude;
+  // Cat actively chases the player with smooth movement
+  const currentX = boss.position.x;
+  const currentY = boss.position.y;
+  
+  // Calculate direction to player
+  const dx = playerPos.x - currentX;
+  const dy = playerPos.y - currentY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  
+  // Chase speed - faster than octopus
+  const chaseSpeed = 2.5;
+  
+  // Move toward player
+  let newX = currentX;
+  let newY = currentY;
+  
+  if (distance > 50) { // Keep some distance
+    newX = currentX + (dx / distance) * chaseSpeed;
+    newY = currentY + (dy / distance) * chaseSpeed;
+  } else {
+    // Circle around player when close
+    const angle = Math.atan2(dy, dx) + 0.05;
+    newX = playerPos.x + Math.cos(angle) * 50;
+    newY = playerPos.y + Math.sin(angle) * 50;
+  }
+  
+  // Keep within bounds
+  newX = Math.max(50, Math.min(GAME_CONFIG.gridWidth - 50, newX));
+  newY = Math.max(50, Math.min(GAME_CONFIG.gridHeight - 50, newY));
 
   return {
     ...boss,
-    animationPhase: boss.animationPhase + 0.05,
+    animationPhase: boss.animationPhase + 0.08,
     position: { x: newX, y: newY },
   };
 };
@@ -681,22 +802,41 @@ const renderMissileBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
   }
 };
 
-// Missile Boss update function
+// Missile Boss update function - AGGRESSIVELY CHASES PLAYER!
 const updateMissileBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
-  // Aggressive tracking movement
-  const targetY = playerPos.y;
+  // Missile aggressively homes in on player
+  const currentX = boss.position.x;
   const currentY = boss.position.y;
-  const smoothing = 0.03;
-  const newY = currentY + (targetY - currentY) * smoothing;
-
-  // Horizontal oscillation
-  const baseX = 420;
-  const xAmplitude = 30;
-  const newX = baseX + Math.sin(time * 0.003) * xAmplitude;
+  
+  // Calculate direction to player
+  const dx = playerPos.x - currentX;
+  const dy = playerPos.y - currentY;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  
+  // Fast homing speed
+  const homingSpeed = 3.0;
+  
+  // Move directly toward player
+  let newX = currentX;
+  let newY = currentY;
+  
+  if (distance > 30) { // Keep minimal distance
+    newX = currentX + (dx / distance) * homingSpeed;
+    newY = currentY + (dy / distance) * homingSpeed;
+  } else {
+    // Orbit around player when very close
+    const angle = Math.atan2(dy, dx) + 0.08;
+    newX = playerPos.x + Math.cos(angle) * 30;
+    newY = playerPos.y + Math.sin(angle) * 30;
+  }
+  
+  // Keep within bounds
+  newX = Math.max(50, Math.min(GAME_CONFIG.gridWidth - 50, newX));
+  newY = Math.max(50, Math.min(GAME_CONFIG.gridHeight - 50, newY));
 
   return {
     ...boss,
-    animationPhase: boss.animationPhase + 0.08,
+    animationPhase: boss.animationPhase + 0.12,
     position: { x: newX, y: newY },
   };
 };
@@ -1564,14 +1704,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   // HALLOWEEN EVENT - Spooky music control
   useEffect(() => {
-    if (HALLOWEEN_EVENT_ACTIVE && gameState.isPlaying && !gameState.isGameOver) {
+    if (isHalloweenMode && gameState.isPlaying && !gameState.isGameOver) {
       startSpookyMusic();
     } else {
       stopSpookyMusic();
     }
 
     return () => stopSpookyMusic();
-  }, [gameState.isPlaying, gameState.isGameOver]);
+  }, [gameState.isPlaying, gameState.isGameOver, isHalloweenMode]);
 
   const generateSnake = useCallback((level: GameLevel, profile: PlayerProfile): Snake => {
     const baseSpeed = GAME_CONFIG.levelSpeeds[level];
@@ -1711,56 +1851,66 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       let randomTheme: BackgroundTheme;
       if (UNDERWATER_LEVEL_ENABLED) {
         randomTheme = UNDERWATER_THEME;
-      } else if (HALLOWEEN_EVENT_ACTIVE) {
+      } else if (isHalloweenMode) {
         randomTheme = HALLOWEEN_THEME;
       } else {
         randomTheme = BACKGROUND_THEMES[Math.floor(Math.random() * BACKGROUND_THEMES.length)] || 'beach';
       }
       setBackgroundTheme(randomTheme);
 
-      // FIXED: Better obstacle generation with proper spacing
-      // Generate snakes first
-      const minSnakeSpacing = 200;
-      const maxSnakeSpacing = 350;
-      let currentX = GAME_CONFIG.gridWidth + 150;
-
-      for (let i = 0; i < snakeCount; i++) {
-        const snake = generateSnake(level, profile);
-        snake.position.x = currentX;
-        snakes.push(snake);
-        currentX += minSnakeSpacing + Math.random() * (maxSnakeSpacing - minSnakeSpacing);
-      }
-
-      // Generate obstacles (pillars/ghosts) with guaranteed spacing from snakes
-      const minObstacleSpacing = 250;
-      const maxObstacleSpacing = 400;
-      currentX = GAME_CONFIG.gridWidth + 300; // Start offset from first snake
-
-      for (let i = 0; i < obstacleCount; i++) {
-        const obstacle = generateObstacle(randomTheme);
+      // IMPROVED: Interleaved obstacle generation with guaranteed spacing
+      // Create a combined timeline with proper spacing
+      const minSpacing = 280; // Minimum distance between ANY obstacles
+      const maxSpacing = 450; // Maximum distance for variety
+      const safetyBuffer = 200; // Extra buffer between snakes and pillars
+      
+      let currentX = GAME_CONFIG.gridWidth + 200;
+      const allPositions: Array<{ type: 'snake' | 'obstacle'; x: number }> = [];
+      
+      // Interleave snakes and obstacles for better distribution
+      const totalObstacles = snakeCount + obstacleCount;
+      let snakeIdx = 0;
+      let obstacleIdx = 0;
+      
+      for (let i = 0; i < totalObstacles; i++) {
+        const shouldPlaceSnake = snakeIdx < snakeCount && 
+          (obstacleIdx >= obstacleCount || Math.random() < 0.5);
         
-        // Ensure obstacle doesn't overlap with any snake
-        let validPosition = false;
-        let attempts = 0;
-        
-        while (!validPosition && attempts < 10) {
-          validPosition = true;
+        if (shouldPlaceSnake) {
+          // Place snake
+          const snake = generateSnake(level, profile);
+          snake.position.x = currentX;
+          snakes.push(snake);
+          allPositions.push({ type: 'snake', x: currentX });
+          snakeIdx++;
           
-          // Check if this position conflicts with any snake
-          for (const snake of snakes) {
-            if (Math.abs(obstacle.position.x - snake.position.x) < 150) {
-              validPosition = false;
-              currentX += 100; // Move further
+          // Add extra buffer after snake before allowing obstacle
+          currentX += minSpacing + safetyBuffer + Math.random() * (maxSpacing - minSpacing);
+        } else {
+          // Place obstacle
+          const obstacle = generateObstacle(randomTheme);
+          
+          // Double-check spacing from all existing snakes
+          let tooClose = false;
+          for (const pos of allPositions) {
+            if (pos.type === 'snake' && Math.abs(currentX - pos.x) < safetyBuffer) {
+              tooClose = true;
               break;
             }
           }
           
-          attempts++;
+          if (tooClose) {
+            currentX += safetyBuffer; // Push further if too close
+          }
+          
+          obstacle.position.x = currentX;
+          obstacles.push(obstacle);
+          allPositions.push({ type: 'obstacle', x: currentX });
+          obstacleIdx++;
+          
+          // Regular spacing after obstacle
+          currentX += minSpacing + Math.random() * (maxSpacing - minSpacing);
         }
-        
-        obstacle.position.x = currentX;
-        obstacles.push(obstacle);
-        currentX += minObstacleSpacing + Math.random() * (maxObstacleSpacing - minObstacleSpacing);
       }
 
       // Generate multiple shields at random positions throughout the level
@@ -1785,7 +1935,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       }
 
       // HALLOWEEN EVENT - Add rare fire power-up (only during Halloween)
-      if (HALLOWEEN_EVENT_ACTIVE) {
+      if (isHalloweenMode) {
         // 30% chance to spawn fire power-up (rare)
         if (Math.random() < 0.3) {
           powerUps.push({
@@ -1847,7 +1997,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         },
       });
     },
-    [generateSnake, generateObstacle, selectedSkin, username]
+    [generateSnake, generateObstacle, selectedSkin, username, isHalloweenMode]
   );
 
   const checkSnakeCollision = useCallback((playerPos: Position, snake: Snake): boolean => {
@@ -1950,7 +2100,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       if (!newState.bossState.bossEncounterActive && !newState.isGameOver) {
         const bossType = shouldTriggerBoss(
           newState.score,
-          HALLOWEEN_EVENT_ACTIVE,
+          isHalloweenMode,
           BOSS_BATTLES_ENABLED,
           newState.bossState.defeatedBosses
         );
@@ -2184,7 +2334,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               newState.isGameOver = true;
               newState.isPlaying = false;
 
-              if (HALLOWEEN_EVENT_ACTIVE) {
+              if (isHalloweenMode) {
                 playEvilLaugh();
               } else {
                 playCollisionSound();
@@ -2330,7 +2480,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           newSnake.position.y = Math.random() * (GAME_CONFIG.gridHeight - 100) + 50;
           newState.score += 10;
           // Halloween event - play spooky sound
-          if (HALLOWEEN_EVENT_ACTIVE) {
+          if (isHalloweenMode) {
             playSpookySound();
           } else {
             playPointSound();
@@ -2346,7 +2496,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           newState.isPlaying = false;
 
           // Halloween event - play evil laugh on collision
-          if (HALLOWEEN_EVENT_ACTIVE) {
+          if (isHalloweenMode) {
             playEvilLaugh();
           } else {
             playCollisionSound();
@@ -2440,7 +2590,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
       return newState;
     });
-  }, [checkSnakeCollision, checkObstacleCollision, onScoreUpdate]);
+  }, [checkSnakeCollision, checkObstacleCollision, onScoreUpdate, isHalloweenMode, username, playerProfile]);
 
   const jump = useCallback(() => {
     if (!gameState.isPlaying || gameState.isGameOver || isPaused) return;
@@ -4521,97 +4671,218 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.stroke();
         ctx.shadowBlur = 0;
       } else {
-        // Normal slithering snakes
-        // Draw shadow first
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        // ENHANCED Normal slithering snakes - More lifelike!
+        
+        // Draw realistic shadow with blur
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 4;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
         for (let i = 0; i < segments; i++) {
-          const segmentX = snake.position.x - snake.length / 2 + i * 6 + 3;
+          const segmentX = snake.position.x - snake.length / 2 + i * 6 + 2;
           const segmentY =
             snake.position.y +
             Math.sin(i * 0.3 + Date.now() * undulationSpeed + undulationOffset) *
               undulationAmplitude +
-            3;
-          const segmentSize = Math.max(2, snake.width - i * 0.2);
+            2;
+          const segmentSize = Math.max(3, snake.width - i * 0.15);
           ctx.beginPath();
           ctx.arc(segmentX, segmentY, segmentSize / 2, 0, 2 * Math.PI);
           ctx.fill();
         }
+        ctx.shadowBlur = 0;
 
-        // Draw snake body segments
+        // Draw snake body segments with realistic scales
         for (let i = 0; i < segments; i++) {
           const segmentX = snake.position.x - snake.length / 2 + i * 6;
           const segmentY =
             snake.position.y +
             Math.sin(i * 0.3 + Date.now() * undulationSpeed + undulationOffset) *
               undulationAmplitude;
-          const segmentSize = Math.max(2, snake.width - i * 0.2);
+          const segmentSize = Math.max(3, snake.width - i * 0.15);
 
-          // Segment gradient for 3D effect
+          // Parse base color for gradient calculations
+          const r = parseInt(baseColor.slice(1, 3), 16);
+          const g = parseInt(baseColor.slice(3, 5), 16);
+          const b = parseInt(baseColor.slice(5, 7), 16);
+
+          // Realistic 3D gradient with highlights
           const segGradient = ctx.createRadialGradient(
-            segmentX - 1,
-            segmentY - 1,
+            segmentX - segmentSize * 0.2,
+            segmentY - segmentSize * 0.2,
             0,
             segmentX,
             segmentY,
             segmentSize / 2
           );
-          segGradient.addColorStop(0, baseColor + 'CC');
-          segGradient.addColorStop(0.7, baseColor);
-          segGradient.addColorStop(1, baseColor + '88');
+          
+          // Bright highlight on top
+          segGradient.addColorStop(0, `rgb(${Math.min(255, r + 60)}, ${Math.min(255, g + 60)}, ${Math.min(255, b + 60)})`);
+          // Main body color
+          segGradient.addColorStop(0.4, baseColor);
+          // Darker sides
+          segGradient.addColorStop(0.8, `rgb(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)})`);
+          // Very dark edge
+          segGradient.addColorStop(1, `rgb(${Math.max(0, r - 80)}, ${Math.max(0, g - 80)}, ${Math.max(0, b - 80)})`);
 
           ctx.fillStyle = segGradient;
           ctx.beginPath();
           ctx.arc(segmentX, segmentY, segmentSize / 2, 0, 2 * Math.PI);
           ctx.fill();
 
-          // Add scale pattern
-          if (i % 2 === 0 && segmentSize > 4) {
-            ctx.strokeStyle = baseColor + '66';
-            ctx.lineWidth = 0.5;
+          // Realistic scale pattern - overlapping scales
+          if (segmentSize > 4) {
+            // Outer scale ring
+            ctx.strokeStyle = `rgba(${Math.max(0, r - 30)}, ${Math.max(0, g - 30)}, ${Math.max(0, b - 30)}, 0.6)`;
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(segmentX, segmentY, segmentSize / 3, 0, 2 * Math.PI);
+            ctx.arc(segmentX, segmentY, segmentSize / 2.5, 0, 2 * Math.PI);
             ctx.stroke();
+
+            // Inner scale detail
+            if (i % 2 === 0) {
+              ctx.strokeStyle = `rgba(${Math.min(255, r + 20)}, ${Math.min(255, g + 20)}, ${Math.min(255, b + 20)}, 0.4)`;
+              ctx.lineWidth = 0.8;
+              ctx.beginPath();
+              ctx.arc(segmentX, segmentY, segmentSize / 3.5, 0, 2 * Math.PI);
+              ctx.stroke();
+            }
+
+            // Scale texture lines
+            if (i % 3 === 0) {
+              ctx.strokeStyle = `rgba(${Math.max(0, r - 50)}, ${Math.max(0, g - 50)}, ${Math.max(0, b - 50)}, 0.3)`;
+              ctx.lineWidth = 0.5;
+              for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 3) {
+                ctx.beginPath();
+                ctx.moveTo(segmentX, segmentY);
+                ctx.lineTo(
+                  segmentX + Math.cos(angle) * (segmentSize / 3),
+                  segmentY + Math.sin(angle) * (segmentSize / 3)
+                );
+                ctx.stroke();
+              }
+            }
+          }
+
+          // Belly scales (lighter underside)
+          if (i % 4 === 0 && segmentSize > 5) {
+            ctx.fillStyle = `rgba(${Math.min(255, r + 80)}, ${Math.min(255, g + 80)}, ${Math.min(255, b + 80)}, 0.3)`;
+            ctx.beginPath();
+            ctx.ellipse(segmentX, segmentY + segmentSize * 0.2, segmentSize * 0.3, segmentSize * 0.15, 0, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
 
-        // Draw detailed head (last segment)
+        // Draw detailed realistic head
         const headX = snake.position.x + snake.length / 2 - 3;
         const headY =
           snake.position.y +
           Math.sin((segments - 1) * 0.3 + Date.now() * undulationSpeed + undulationOffset) *
             undulationAmplitude;
+        const headSize = snake.width * 1.2;
 
-        // Eyes
-        ctx.fillStyle = '#FF0000';
-        ctx.shadowColor = '#FF0000';
-        ctx.shadowBlur = 3;
+        // Head shape with gradient
+        const headGradient = ctx.createRadialGradient(
+          headX - headSize * 0.2,
+          headY - headSize * 0.2,
+          0,
+          headX,
+          headY,
+          headSize
+        );
+        const r = parseInt(baseColor.slice(1, 3), 16);
+        const g = parseInt(baseColor.slice(3, 5), 16);
+        const b = parseInt(baseColor.slice(5, 7), 16);
+        
+        headGradient.addColorStop(0, `rgb(${Math.min(255, r + 70)}, ${Math.min(255, g + 70)}, ${Math.min(255, b + 70)})`);
+        headGradient.addColorStop(0.5, baseColor);
+        headGradient.addColorStop(1, `rgb(${Math.max(0, r - 60)}, ${Math.max(0, g - 60)}, ${Math.max(0, b - 60)})`);
+        
+        ctx.fillStyle = headGradient;
         ctx.beginPath();
-        ctx.arc(headX - 1, headY - 1.5, 1.2, 0, 2 * Math.PI);
+        ctx.arc(headX, headY, headSize / 2, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Head scales
+        ctx.strokeStyle = `rgba(${Math.max(0, r - 40)}, ${Math.max(0, g - 40)}, ${Math.max(0, b - 40)}, 0.5)`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(headX, headY, headSize / 2.5, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Realistic eyes with depth
+        const eyeSize = 2;
+        const eyeOffset = headSize * 0.25;
+        
+        // Eye sockets (darker)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.arc(headX + 1, headY - eyeOffset, eyeSize + 1, 0, 2 * Math.PI);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(headX - 1, headY + 1.5, 1.2, 0, 2 * Math.PI);
+        ctx.arc(headX + 1, headY + eyeOffset, eyeSize + 1, 0, 2 * Math.PI);
+        ctx.fill();
+
+        // Eye whites
+        ctx.fillStyle = '#FFFF00';
+        ctx.shadowColor = '#FFFF00';
+        ctx.shadowBlur = 4;
+        ctx.beginPath();
+        ctx.arc(headX + 1, headY - eyeOffset, eyeSize, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(headX + 1, headY + eyeOffset, eyeSize, 0, 2 * Math.PI);
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Eye pupils
+        // Vertical slit pupils (reptilian)
         ctx.fillStyle = '#000000';
+        ctx.fillRect(headX + 0.5, headY - eyeOffset - 1.5, 1, 3);
+        ctx.fillRect(headX + 0.5, headY + eyeOffset - 1.5, 1, 3);
+
+        // Eye highlights
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.beginPath();
-        ctx.arc(headX - 1, headY - 1.5, 0.6, 0, 2 * Math.PI);
+        ctx.arc(headX + 0.5, headY - eyeOffset - 0.5, 0.5, 0, 2 * Math.PI);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(headX - 1, headY + 1.5, 0.6, 0, 2 * Math.PI);
+        ctx.arc(headX + 0.5, headY + eyeOffset - 0.5, 0.5, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Forked tongue
+        // Animated forked tongue
+        const tongueExtend = Math.sin(Date.now() * 0.008) * 3 + 5;
         ctx.strokeStyle = '#FF1493';
+        ctx.shadowColor = '#FF1493';
+        ctx.shadowBlur = 2;
         ctx.lineWidth = 1.5;
         ctx.lineCap = 'round';
+        
+        // Tongue base
         ctx.beginPath();
-        ctx.moveTo(headX + 2, headY);
-        ctx.lineTo(headX + 6, headY - 1);
-        ctx.moveTo(headX + 2, headY);
-        ctx.lineTo(headX + 6, headY + 1);
+        ctx.moveTo(headX + headSize / 2, headY);
+        ctx.lineTo(headX + headSize / 2 + tongueExtend * 0.6, headY);
         ctx.stroke();
+        
+        // Forked tips
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(headX + headSize / 2 + tongueExtend * 0.6, headY);
+        ctx.lineTo(headX + headSize / 2 + tongueExtend, headY - 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(headX + headSize / 2 + tongueExtend * 0.6, headY);
+        ctx.lineTo(headX + headSize / 2 + tongueExtend, headY + 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Nostril holes
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.beginPath();
+        ctx.arc(headX + headSize * 0.3, headY - 1, 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(headX + headSize * 0.3, headY + 1, 0.8, 0, 2 * Math.PI);
+        ctx.fill();
       }
     });
 
@@ -5269,7 +5540,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         {gameState.isGameOver && !showGameOverUI && (
           <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
             <div className="text-center animate-fade-in">
-              {HALLOWEEN_EVENT_ACTIVE ? (
+              {isHalloweenMode ? (
                 <>
                   <p className="text-3xl font-bold text-red-600 mb-4 animate-pulse">
                     💀 YOU HAVE FALLEN 💀
@@ -5291,7 +5562,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
         {gameState.isGameOver && showGameOverUI && (
           <div className="absolute inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center text-white p-4 animate-fade-in">
-            {HALLOWEEN_EVENT_ACTIVE ? (
+            {isHalloweenMode ? (
               <>
                 <div className="text-center mb-6 animate-pulse">
                   <h2 className="text-4xl sm:text-5xl font-black mb-4 text-red-600 drop-shadow-lg">
@@ -5370,14 +5641,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       </div>
 
       <div className="text-center text-xs sm:text-sm text-gray-600 max-w-md px-2 sm:px-4">
-        {HALLOWEEN_EVENT_ACTIVE ? (
+        {isHalloweenMode ? (
           <>
             <p className="mb-1 text-orange-600 font-bold">🎃 HALLOWEEN SPECIAL EVENT! 🎃</p>
             <p className="mb-1">
               Avoid flying witches, evil pumpkins, and spooky ghosts! Collect shields for protection!
             </p>
             <p className="mb-1 text-red-600 font-semibold">
-              🐙 OCTOPUS at 100 pts! 🦇 BAT at 250 pts!
+              🐙 OCTOPUS BOSS at 100 pts! 🦇 BAT BOSS at 500 pts!
             </p>
             <p className="mb-1 text-yellow-600 font-bold">
               ⚔️ BOSS CHASES YOU! Collide to attack! Dodge projectiles!
@@ -5395,7 +5666,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               Avoid snakes (watch for coiling ones!) and obstacles. Collect shields for protection!
             </p>
             <p className="mb-1 text-blue-600 font-semibold">
-              🐱 CAT BOSS at 100 pts! 🚀 MISSILE BOSS at 250 pts!
+              🐱 CAT BOSS at 100 pts! 🚀 MISSILE BOSS at 500 pts!
             </p>
             <p className="text-green-600 font-semibold">
               🤖 AI adapts difficulty based on your performance!

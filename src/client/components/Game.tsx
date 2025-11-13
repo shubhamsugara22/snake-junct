@@ -58,14 +58,23 @@ class ProjectilePool {
 }
 
 // Boss trigger and lifecycle management functions
-const checkBossTrigger = (score: number, defeatedBosses: BossType[]): BossType | null => {
-  // Check for Bat Boss at score 250 (higher score first)
-  if (score >= 250 && !defeatedBosses.includes('bat')) {
-    return 'bat';
-  }
-  // Check for Octopus Boss at score 100
-  if (score >= 100 && !defeatedBosses.includes('octopus')) {
-    return 'octopus';
+const checkBossTrigger = (score: number, defeatedBosses: BossType[], halloweenMode: boolean): BossType | null => {
+  if (halloweenMode) {
+    // Halloween bosses
+    if (score >= 250 && !defeatedBosses.includes('bat')) {
+      return 'bat';
+    }
+    if (score >= 100 && !defeatedBosses.includes('octopus')) {
+      return 'octopus';
+    }
+  } else {
+    // Normal mode bosses
+    if (score >= 250 && !defeatedBosses.includes('missile')) {
+      return 'missile';
+    }
+    if (score >= 100 && !defeatedBosses.includes('cat')) {
+      return 'cat';
+    }
   }
   return null;
 };
@@ -77,13 +86,13 @@ const shouldTriggerBoss = (
   defeatedBosses: BossType[]
 ): BossType | null => {
   // Check feature flags
-  if (!bossesEnabled || !halloweenActive) {
+  if (!bossesEnabled) {
     return null;
   }
 
   // Call checkBossTrigger with error handling
   try {
-    return checkBossTrigger(score, defeatedBosses);
+    return checkBossTrigger(score, defeatedBosses, halloweenActive);
   } catch (error) {
     console.error('Error checking boss trigger:', error);
     return null;
@@ -464,6 +473,265 @@ const batThrowProjectile = (
   return projectiles;
 };
 
+// ============================================
+// 🐱 CAT BOSS (Normal Mode) 🐱
+// ============================================
+
+// Cat Boss rendering function
+const renderCatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
+  const config = BOSS_CONFIGS.cat;
+  const { x, y } = boss.position;
+  const isFlashing = time - boss.hitFlashTime < 200;
+
+  if (isFlashing) {
+    renderDamageNumber(ctx, x, y - 50, time - boss.hitFlashTime);
+  }
+
+  // Cat body - orange with stripes
+  const bodyGradient = ctx.createRadialGradient(x, y, 0, x, y, 35);
+  bodyGradient.addColorStop(0, isFlashing ? '#FFFFFF' : config.colors.primary);
+  bodyGradient.addColorStop(1, isFlashing ? '#FFFFFF' : config.colors.secondary);
+  
+  ctx.fillStyle = bodyGradient;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 35, 30, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cat head
+  ctx.beginPath();
+  ctx.arc(x, y - 25, 25, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cat ears - triangular
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
+  ctx.beginPath();
+  ctx.moveTo(x - 20, y - 35);
+  ctx.lineTo(x - 10, y - 50);
+  ctx.lineTo(x - 5, y - 35);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.moveTo(x + 20, y - 35);
+  ctx.lineTo(x + 10, y - 50);
+  ctx.lineTo(x + 5, y - 35);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eyes - glowing yellow
+  ctx.fillStyle = '#FFD700';
+  ctx.shadowColor = '#FFD700';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.arc(x - 8, y - 28, 4, 0, Math.PI * 2);
+  ctx.arc(x + 8, y - 28, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Whiskers
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 1;
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x - 25, y - 20 + i * 3);
+    ctx.lineTo(x - 35, y - 22 + i * 5);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x + 25, y - 20 + i * 3);
+    ctx.lineTo(x + 35, y - 22 + i * 5);
+    ctx.stroke();
+  }
+
+  // Tail - wavy
+  ctx.strokeStyle = isFlashing ? '#FFFFFF' : config.colors.primary;
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.moveTo(x + 30, y + 10);
+  const tailWave = Math.sin(time * 0.01) * 10;
+  ctx.quadraticCurveTo(x + 45, y + tailWave, x + 55, y - 10);
+  ctx.stroke();
+};
+
+// Cat Boss update function
+const updateCatBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
+  // Smooth sine wave movement
+  const baseY = 200;
+  const amplitude = 80;
+  const frequency = 0.002;
+  const newY = baseY + Math.sin(time * frequency) * amplitude;
+
+  // Horizontal movement
+  const baseX = 450;
+  const xAmplitude = 50;
+  const newX = baseX + Math.sin(time * frequency * 0.7) * xAmplitude;
+
+  return {
+    ...boss,
+    animationPhase: boss.animationPhase + 0.05,
+    position: { x: newX, y: newY },
+  };
+};
+
+// Cat Boss projectile throwing function
+const catThrowProjectile = (
+  boss: Boss,
+  playerPos: Position,
+  pool: ProjectilePool,
+  skillLevel: number
+): Projectile[] => {
+  const config = BOSS_CONFIGS.cat;
+  const interval = skillLevel < 0.3 ? 1600 : config.projectileInterval;
+
+  const now = Date.now();
+  if (now - boss.lastProjectileTime < interval) {
+    return [];
+  }
+
+  boss.lastProjectileTime = now;
+  playProjectileThrowSound();
+
+  // Aim at player
+  const dx = playerPos.x - boss.position.x;
+  const dy = playerPos.y - boss.position.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const velocity = {
+    x: (dx / distance) * config.projectileSpeed,
+    y: (dy / distance) * config.projectileSpeed,
+  };
+
+  return pool.acquire('fireball', boss.position, velocity, config.projectileSize);
+};
+
+// ============================================
+// 🚀 MISSILE BOSS (Normal Mode) 🚀
+// ============================================
+
+// Missile Boss rendering function
+const renderMissileBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
+  const config = BOSS_CONFIGS.missile;
+  const { x, y } = boss.position;
+  const isFlashing = time - boss.hitFlashTime < 200;
+
+  if (isFlashing) {
+    renderDamageNumber(ctx, x, y - 50, time - boss.hitFlashTime);
+  }
+
+  // Missile body - metallic gray
+  const bodyGradient = ctx.createLinearGradient(x - 40, y, x + 40, y);
+  bodyGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#34495E');
+  bodyGradient.addColorStop(0.5, isFlashing ? '#FFFFFF' : config.colors.primary);
+  bodyGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#34495E');
+  
+  ctx.fillStyle = bodyGradient;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 45, 20, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Missile nose cone - red
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.secondary;
+  ctx.beginPath();
+  ctx.moveTo(x + 45, y);
+  ctx.lineTo(x + 60, y - 8);
+  ctx.lineTo(x + 60, y + 8);
+  ctx.closePath();
+  ctx.fill();
+
+  // Fins
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.secondary;
+  ctx.beginPath();
+  ctx.moveTo(x - 40, y);
+  ctx.lineTo(x - 50, y - 15);
+  ctx.lineTo(x - 35, y);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.moveTo(x - 40, y);
+  ctx.lineTo(x - 50, y + 15);
+  ctx.lineTo(x - 35, y);
+  ctx.closePath();
+  ctx.fill();
+
+  // Engine glow
+  ctx.fillStyle = config.colors.glow;
+  ctx.shadowColor = config.colors.glow;
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.arc(x - 45, y, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Exhaust trail
+  for (let i = 0; i < 3; i++) {
+    ctx.globalAlpha = 0.3 - i * 0.1;
+    ctx.fillStyle = '#F39C12';
+    ctx.beginPath();
+    ctx.arc(x - 50 - i * 10, y, 6 - i * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Warning lights
+  const blinkOn = Math.floor(time * 0.005) % 2 === 0;
+  if (blinkOn) {
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(x + 20, y - 10, 3, 0, Math.PI * 2);
+    ctx.arc(x + 20, y + 10, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
+// Missile Boss update function
+const updateMissileBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
+  // Aggressive tracking movement
+  const targetY = playerPos.y;
+  const currentY = boss.position.y;
+  const smoothing = 0.03;
+  const newY = currentY + (targetY - currentY) * smoothing;
+
+  // Horizontal oscillation
+  const baseX = 420;
+  const xAmplitude = 30;
+  const newX = baseX + Math.sin(time * 0.003) * xAmplitude;
+
+  return {
+    ...boss,
+    animationPhase: boss.animationPhase + 0.08,
+    position: { x: newX, y: newY },
+  };
+};
+
+// Missile Boss projectile throwing function
+const missileThrowProjectile = (
+  boss: Boss,
+  playerPos: Position,
+  pool: ProjectilePool,
+  skillLevel: number
+): Projectile[] => {
+  const config = BOSS_CONFIGS.missile;
+  const interval = skillLevel < 0.3 ? 1200 : config.projectileInterval;
+
+  const now = Date.now();
+  if (now - boss.lastProjectileTime < interval) {
+    return [];
+  }
+
+  boss.lastProjectileTime = now;
+  playProjectileThrowSound();
+
+  // Fast homing rockets
+  const dx = playerPos.x - boss.position.x;
+  const dy = playerPos.y - boss.position.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const velocity = {
+    x: (dx / distance) * config.projectileSpeed,
+    y: (dy / distance) * config.projectileSpeed,
+  };
+
+  return pool.acquire('rocket', boss.position, velocity, config.projectileSize);
+};
+
 // Projectile rendering functions
 const renderInkBlob = (ctx: CanvasRenderingContext2D, projectile: Projectile, time: number) => {
   const { x, y } = projectile.position;
@@ -714,9 +982,9 @@ const GAME_CONFIG: GameConfig = {
     hard: 9,
   },
   obstacleCount: {
-    easy: 1,
-    medium: 2,
-    hard: 3,
+    easy: 3,
+    medium: 5,
+    hard: 7,
   },
 };
 
@@ -735,7 +1003,8 @@ const UNDERWATER_THEME: BackgroundTheme = 'underwater';
 // To disable: Set HALLOWEEN_EVENT_ACTIVE = false
 // To remove completely: Search for "HALLOWEEN" and remove all related code
 // ============================================
-const HALLOWEEN_EVENT_ACTIVE = true; // Set to false to disable
+// Event toggle - can be changed via settings
+let HALLOWEEN_EVENT_ACTIVE = false; // Toggle between Halloween and Normal mode
 const HALLOWEEN_THEME: BackgroundTheme = 'halloween';
 
 // ML-based player profile for adaptive difficulty
@@ -1139,6 +1408,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   const [showGameOverUI, setShowGameOverUI] = useState(false);
   const [soundVolume, setSoundVolume] = useState(1.0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isHalloweenMode, setIsHalloweenMode] = useState(false);
+
+  // Sync Halloween mode with global variable
+  useEffect(() => {
+    HALLOWEEN_EVENT_ACTIVE = isHalloweenMode;
+  }, [isHalloweenMode]);
 
   // Handle delayed game over screen (5 seconds for screenshots)
   useEffect(() => {
@@ -2087,6 +2362,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     ctx.scale(dpr, dpr);
 
     // Draw background based on theme
+    const time = Date.now();
+    
     if (backgroundTheme === 'halloween') {
       // HALLOWEEN SPECIAL EVENT - Dark spooky background
       const halloweenGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
@@ -3759,7 +4036,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
   return (
     <div className="flex flex-col items-center gap-4 p-2 sm:p-4 w-full" style={{ position: 'relative' }}>
-      <SettingsButton soundVolume={soundVolume} onVolumeChange={setSoundVolume} />
+      <SettingsButton 
+        soundVolume={soundVolume} 
+        onVolumeChange={setSoundVolume}
+        isHalloweenMode={isHalloweenMode}
+        onHalloweenModeChange={setIsHalloweenMode}
+      />
       {gameState.isPlaying && (
         <button
           onClick={() => setIsPaused(!isPaused)}

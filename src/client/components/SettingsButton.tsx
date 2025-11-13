@@ -3,9 +3,11 @@ import { useState } from 'react';
 type SettingsButtonProps = {
   soundVolume: number;
   onVolumeChange: (volume: number) => void;
+  isHalloweenMode: boolean;
+  onHalloweenModeChange: (enabled: boolean) => void;
 };
 
-export const SettingsButton = ({ soundVolume, onVolumeChange }: SettingsButtonProps) => {
+export const SettingsButton = ({ soundVolume, onVolumeChange, isHalloweenMode, onHalloweenModeChange }: SettingsButtonProps) => {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
@@ -57,8 +59,30 @@ export const SettingsButton = ({ soundVolume, onVolumeChange }: SettingsButtonPr
             onChange={(e) => onVolumeChange(parseFloat(e.target.value))}
             style={{ width: '100%' }}
           />
-          <div style={{ color: '#aaa', fontSize: '12px', marginTop: '5px' }}>
+          <div style={{ color: '#aaa', fontSize: '12px', marginTop: '5px', marginBottom: '15px' }}>
             {Math.round(soundVolume * 100)}%
+          </div>
+          
+          <div style={{ borderTop: '1px solid #444', paddingTop: '15px' }}>
+            <div style={{ color: '#fff', marginBottom: '10px', fontSize: '14px' }}>
+              Event Mode
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', color: '#fff' }}>
+              <input
+                type="checkbox"
+                checked={isHalloweenMode}
+                onChange={(e) => onHalloweenModeChange(e.target.checked)}
+                style={{ marginRight: '8px', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '14px' }}>
+                {isHalloweenMode ? '🎃 Halloween Mode' : '🐱 Normal Mode'}
+              </span>
+            </label>
+            <div style={{ color: '#aaa', fontSize: '11px', marginTop: '5px' }}>
+              {isHalloweenMode 
+                ? 'Spooky bosses: Octopus & Bat' 
+                : 'Classic bosses: Cat & Missile'}
+            </div>
           </div>
         </div>
       )}

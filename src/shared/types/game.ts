@@ -1,6 +1,6 @@
 export type GameLevel = 'easy' | 'medium' | 'hard';
 
-export type BossType = 'octopus' | 'bat';
+export type BossType = 'octopus' | 'bat' | 'cat' | 'missile';
 
 export type Position = {
   x: number;
@@ -74,7 +74,7 @@ export type Boss = {
 
 export type Projectile = {
   id: string;
-  type: 'inkBlob' | 'pumpkin';
+  type: 'inkBlob' | 'pumpkin' | 'fireball' | 'rocket';
   position: Position;
   velocity: Position;
   size: number;
@@ -120,6 +120,7 @@ export type GameConfig = {
 
 // Boss Configurations
 export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
+  // Halloween Bosses
   octopus: {
     type: 'octopus',
     triggerScore: 100,
@@ -148,6 +149,37 @@ export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
       primary: '#000000',
       secondary: '#FF0000',
       glow: '#FF0000',
+    },
+  },
+  // Normal Mode Bosses
+  cat: {
+    type: 'cat',
+    triggerScore: 100,
+    health: 10,
+    position: { x: 500, y: 200 },
+    size: { width: 70, height: 60 },
+    projectileInterval: 1400,
+    projectileSpeed: 3.5,
+    projectileSize: 12,
+    colors: {
+      primary: '#FF6B35',
+      secondary: '#F7931E',
+      glow: '#FFD700',
+    },
+  },
+  missile: {
+    type: 'missile',
+    triggerScore: 250,
+    health: 15,
+    position: { x: 300, y: 200 },
+    size: { width: 90, height: 50 },
+    projectileInterval: 1000,
+    projectileSpeed: 4,
+    projectileSize: 14,
+    colors: {
+      primary: '#2C3E50',
+      secondary: '#E74C3C',
+      glow: '#F39C12',
     },
   },
 };

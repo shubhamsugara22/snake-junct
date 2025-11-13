@@ -20,7 +20,7 @@ class ProjectilePool {
   private maxSize = 20;
 
   acquire(
-    type: 'inkBlob' | 'pumpkin',
+    type: 'inkBlob' | 'pumpkin' | 'fireball' | 'rocket',
     position: Position,
     velocity: Position,
     size: number
@@ -578,17 +578,16 @@ const catThrowProjectile = (
   playerPos: Position,
   pool: ProjectilePool,
   skillLevel: number
-): Projectile[] => {
+): Projectile | null => {
   const config = BOSS_CONFIGS.cat;
   const interval = skillLevel < 0.3 ? 1600 : config.projectileInterval;
 
   const now = Date.now();
   if (now - boss.lastProjectileTime < interval) {
-    return [];
+    return null;
   }
 
   boss.lastProjectileTime = now;
-  playProjectileThrowSound();
 
   // Aim at player
   const dx = playerPos.x - boss.position.x;
@@ -708,17 +707,16 @@ const missileThrowProjectile = (
   playerPos: Position,
   pool: ProjectilePool,
   skillLevel: number
-): Projectile[] => {
+): Projectile | null => {
   const config = BOSS_CONFIGS.missile;
   const interval = skillLevel < 0.3 ? 1200 : config.projectileInterval;
 
   const now = Date.now();
   if (now - boss.lastProjectileTime < interval) {
-    return [];
+    return null;
   }
 
   boss.lastProjectileTime = now;
-  playProjectileThrowSound();
 
   // Fast homing rockets
   const dx = playerPos.x - boss.position.x;
@@ -825,6 +823,128 @@ const renderPumpkin = (ctx: CanvasRenderingContext2D, projectile: Projectile, ti
       radius * 0.25
     );
   }
+};
+
+// Fireball rendering (Cat Boss projectile)
+const renderFireball = (ctx: CanvasRenderingContext2D, projectile: Projectile, time: number) => {
+  const { x, y } = projectile.position;
+  const radius = projectile.size;
+
+  // Outer glow
+  ctx.fillStyle = 'rgba(255, 69, 0, 0.3)';
+  ctx.shadowColor = '#FF4500';
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.arc(x, y, radius + 8, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Fireball core with gradient
+  const fireGradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, radius);
+  fireGradient.addColorStop(0, '#FFFFFF');
+  fireGradient.addColorStop(0.3, '#FFFF00');
+  fireGradient.addColorStop(0.6, '#FF8C00');
+  fireGradient.addColorStop(1, '#FF4500');
+  
+  ctx.fillStyle = fireGradient;
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Animated flame particles
+  const particleCount = 8;
+  for (let i = 0; i < particleCount; i++) {
+    const angle = (i / particleCount) * Math.PI * 2 + time * 0.005;
+    const distance = radius + Math.sin(time * 0.01 + i) * 5;
+    const px = x + Math.cos(angle) * distance;
+    const py = y + Math.sin(angle) * distance;
+    
+    ctx.fillStyle = i % 2 === 0 ? '#FF8C00' : '#FFD700';
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+};
+
+// Rocket rendering (Missile Boss projectile)
+const renderRocket = (ctx: CanvasRenderingContext2D, projectile: Projectile, time: number) => {
+  const { x, y } = projectile.position;
+  const size = projectile.size;
+
+  // Calculate rotation based on velocity
+  const angle = Math.atan2(projectile.velocity.y, projectile.velocity.x);
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  // Rocket body
+  const bodyGradient = ctx.createLinearGradient(0, -size / 2, 0, size / 2);
+  bodyGradient.addColorStop(0, '#7F8C8D');
+  bodyGradient.addColorStop(0.5, '#95A5A6');
+  bodyGradient.addColorStop(1, '#7F8C8D');
+  
+  ctx.fillStyle = bodyGradient;
+  ctx.fillRect(-size, -size / 2, size * 1.5, size);
+
+  // Rocket nose cone
+  ctx.fillStyle = '#E74C3C';
+  ctx.beginPath();
+  ctx.moveTo(size * 0.5, 0);
+  ctx.lineTo(size * 1.2, -size / 2);
+  ctx.lineTo(size * 1.2, size / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Rocket fins
+  ctx.fillStyle = '#C0392B';
+  ctx.beginPath();
+  ctx.moveTo(-size, -size / 2);
+  ctx.lineTo(-size * 1.3, -size);
+  ctx.lineTo(-size * 0.7, -size / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(-size, size / 2);
+  ctx.lineTo(-size * 1.3, size);
+  ctx.lineTo(-size * 0.7, size / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Exhaust flame
+  const flameLength = size * 0.8 + Math.sin(time * 0.02) * size * 0.3;
+  const flameGradient = ctx.createLinearGradient(-size, 0, -size - flameLength, 0);
+  flameGradient.addColorStop(0, '#FF8C00');
+  flameGradient.addColorStop(0.5, '#FF4500');
+  flameGradient.addColorStop(1, 'rgba(255, 69, 0, 0)');
+  
+  ctx.fillStyle = flameGradient;
+  ctx.shadowColor = '#FF4500';
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(-size, -size / 3);
+  ctx.lineTo(-size - flameLength, 0);
+  ctx.lineTo(-size, size / 3);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Blinking red light
+  if (Math.floor(time * 0.01) % 2 === 0) {
+    ctx.fillStyle = '#FF0000';
+    ctx.shadowColor = '#FF0000';
+    ctx.shadowBlur = 5;
+    ctx.beginPath();
+    ctx.arc(0, 0, size / 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  ctx.restore();
 };
 
 // Boss collision detection
@@ -1188,8 +1308,11 @@ const renderBossHealthBar = (ctx: CanvasRenderingContext2D, boss: Boss) => {
   ctx.fillStyle = '#FFFFFF';
   ctx.font = 'bold 14px Arial';
   ctx.textAlign = 'center';
+  const bossName = boss.type === 'octopus' ? 'OCTOPUS BOSS' : 
+                   boss.type === 'bat' ? 'BAT BOSS' :
+                   boss.type === 'cat' ? 'CAT BOSS' : 'MISSILE BOSS';
   ctx.fillText(
-    boss.type === 'octopus' ? 'OCTOPUS BOSS' : 'BAT BOSS',
+    bossName,
     GAME_CONFIG.gridWidth / 2,
     barY - 8
   );
@@ -1259,8 +1382,11 @@ const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTi
     ctx.shadowBlur = 20;
     ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
+    const bossName = boss.type === 'octopus' ? 'OCTOPUS BOSS' : 
+                     boss.type === 'bat' ? 'BAT BOSS' :
+                     boss.type === 'cat' ? 'CAT BOSS' : 'MISSILE BOSS';
     ctx.fillText(
-      boss.type === 'octopus' ? 'OCTOPUS BOSS' : 'BAT BOSS',
+      bossName,
       GAME_CONFIG.gridWidth / 2,
       GAME_CONFIG.gridHeight / 2 - 50
     );
@@ -1285,8 +1411,12 @@ const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTi
 
     if (boss.type === 'octopus') {
       renderOctopusBoss(ctx, tempBoss, Date.now());
-    } else {
+    } else if (boss.type === 'bat') {
       renderBatBoss(ctx, tempBoss, Date.now());
+    } else if (boss.type === 'cat') {
+      renderCatBoss(ctx, tempBoss, Date.now());
+    } else if (boss.type === 'missile') {
+      renderMissileBoss(ctx, tempBoss, Date.now());
     }
   }
 };
@@ -1306,8 +1436,12 @@ const renderVictoryAnimation = (ctx: CanvasRenderingContext2D, boss: Boss, elaps
 
   if (boss.type === 'octopus') {
     renderOctopusBoss(ctx, boss, Date.now());
-  } else {
+  } else if (boss.type === 'bat') {
     renderBatBoss(ctx, boss, Date.now());
+  } else if (boss.type === 'cat') {
+    renderCatBoss(ctx, boss, Date.now());
+  } else if (boss.type === 'missile') {
+    renderMissileBoss(ctx, boss, Date.now());
   }
 
   ctx.restore();
@@ -1565,16 +1699,13 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       const snakes: Snake[] = [];
       const obstacles: Obstacle[] = [];
 
-      // Adaptive obstacle count based on player skill
+      // INCREASED obstacle count for more frequency
       const baseSnakeCount = GAME_CONFIG.snakeCount[level];
       const baseObstacleCount = GAME_CONFIG.obstacleCount[level];
 
-      // Adjust counts: beginners get fewer, skilled players get more
-      const snakeCount = Math.max(1, Math.round(baseSnakeCount * (0.7 + profile.skillLevel * 0.6)));
-      const obstacleCount = Math.max(
-        1,
-        Math.round(baseObstacleCount * (0.7 + profile.skillLevel * 0.6))
-      );
+      // Adjust counts: MORE obstacles for better gameplay
+      const snakeCount = Math.max(3, Math.round(baseSnakeCount * (1.2 + profile.skillLevel * 0.5)));
+      const obstacleCount = Math.max(3, Math.round(baseObstacleCount * (1.2 + profile.skillLevel * 0.5)));
 
       // Randomly select background theme (or force special themes if active)
       let randomTheme: BackgroundTheme;
@@ -1587,57 +1718,50 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       }
       setBackgroundTheme(randomTheme);
 
-      // Create a combined array of all obstacles with proper spacing
-      // Ensure snakes and obstacles NEVER spawn together - strict separation
-      const allObstacles: Array<{ type: 'snake' | 'pillar' | 'tree'; position: number }> = [];
+      // FIXED: Better obstacle generation with proper spacing
+      // Generate snakes first
+      const minSnakeSpacing = 200;
+      const maxSnakeSpacing = 350;
+      let currentX = GAME_CONFIG.gridWidth + 150;
 
-      // Strategy: Alternate between snakes and pillars with buffer zones
-      // Pattern: Snake -> Buffer -> Pillar -> Buffer -> Snake -> ...
-
-      let snakeIndex = 0;
-      let pillarIndex = 0;
-
-      // Alternate placement with guaranteed separation
-      let position = 0;
-      while (snakeIndex < snakeCount || pillarIndex < obstacleCount) {
-        // Add snake if available
-        if (snakeIndex < snakeCount) {
-          allObstacles.push({ type: 'snake', position: position });
-          position += 2; // Move to next slot
-          snakeIndex++;
-        }
-
-        // Add pillar if available (with buffer from snake)
-        if (pillarIndex < obstacleCount) {
-          allObstacles.push({ type: 'pillar', position: position });
-          position += 2; // Move to next slot
-          pillarIndex++;
-        }
+      for (let i = 0; i < snakeCount; i++) {
+        const snake = generateSnake(level, profile);
+        snake.position.x = currentX;
+        snakes.push(snake);
+        currentX += minSnakeSpacing + Math.random() * (maxSnakeSpacing - minSnakeSpacing);
       }
 
-      // Sort by position to ensure proper order
-      allObstacles.sort((a, b) => a.position - b.position);
+      // Generate obstacles (pillars/ghosts) with guaranteed spacing from snakes
+      const minObstacleSpacing = 250;
+      const maxObstacleSpacing = 400;
+      currentX = GAME_CONFIG.gridWidth + 300; // Start offset from first snake
 
-      // Adaptive spacing: skilled players get tighter spacing
-      const baseSpacing = 250;
-      const spacing = Math.max(180, baseSpacing - profile.skillLevel * 70);
-
-      // Generate obstacles with adaptive spacing
-      let currentX = GAME_CONFIG.gridWidth + 100;
-
-      allObstacles.forEach((item) => {
-        if (item.type === 'snake') {
-          const snake = generateSnake(level, profile);
-          snake.position.x = currentX;
-          snakes.push(snake);
-          currentX += spacing;
-        } else if (item.type === 'pillar') {
-          const obstacle = generateObstacle(randomTheme);
-          obstacle.position.x = currentX;
-          obstacles.push(obstacle);
-          currentX += spacing;
+      for (let i = 0; i < obstacleCount; i++) {
+        const obstacle = generateObstacle(randomTheme);
+        
+        // Ensure obstacle doesn't overlap with any snake
+        let validPosition = false;
+        let attempts = 0;
+        
+        while (!validPosition && attempts < 10) {
+          validPosition = true;
+          
+          // Check if this position conflicts with any snake
+          for (const snake of snakes) {
+            if (Math.abs(obstacle.position.x - snake.position.x) < 150) {
+              validPosition = false;
+              currentX += 100; // Move further
+              break;
+            }
+          }
+          
+          attempts++;
         }
-      });
+        
+        obstacle.position.x = currentX;
+        obstacles.push(obstacle);
+        currentX += minObstacleSpacing + Math.random() * (maxObstacleSpacing - minObstacleSpacing);
+      }
 
       // Generate multiple shields at random positions throughout the level
       // Beginners get more shields
@@ -1885,8 +2009,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           let updatedBoss: Boss;
           if (boss.type === 'octopus') {
             updatedBoss = updateOctopusBoss(boss, Date.now(), newState.player.position.y);
-          } else {
+          } else if (boss.type === 'bat') {
             updatedBoss = updateBatBoss(boss, Date.now(), newState.player.position.y);
+          } else if (boss.type === 'cat') {
+            updatedBoss = updateCatBoss(boss, newState.player.position, Date.now());
+          } else if (boss.type === 'missile') {
+            updatedBoss = updateMissileBoss(boss, newState.player.position, Date.now());
+          } else {
+            updatedBoss = boss;
           }
           newState.bossState.currentBoss = updatedBoss;
 
@@ -1902,7 +2032,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               newState.bossState.projectiles.push(projectile);
               playProjectileThrowSound();
             }
-          } else {
+          } else if (updatedBoss.type === 'bat') {
             const projectiles = batThrowProjectile(
               updatedBoss,
               newState.player.position,
@@ -1911,6 +2041,28 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             );
             if (projectiles.length > 0) {
               newState.bossState.projectiles.push(...projectiles);
+              playProjectileThrowSound();
+            }
+          } else if (updatedBoss.type === 'cat') {
+            const projectile = catThrowProjectile(
+              updatedBoss,
+              newState.player.position,
+              projectilePoolRef.current,
+              playerProfile.skillLevel
+            );
+            if (projectile) {
+              newState.bossState.projectiles.push(projectile);
+              playProjectileThrowSound();
+            }
+          } else if (updatedBoss.type === 'missile') {
+            const projectile = missileThrowProjectile(
+              updatedBoss,
+              newState.player.position,
+              projectilePoolRef.current,
+              playerProfile.skillLevel
+            );
+            if (projectile) {
+              newState.bossState.projectiles.push(projectile);
               playProjectileThrowSound();
             }
           }
@@ -2509,222 +2661,1015 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       }
       ctx.globalAlpha = 1;
     } else if (backgroundTheme === 'beach') {
-      // Simple beach: Sky, Sand, Palm Trees
+      // ENHANCED BEACH: Animated sky, waves, palm trees, clouds, and birds
 
-      // Sky (top 70%)
+      // Animated sky gradient (sunrise/sunset effect)
       const skyGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight * 0.7);
-      skyGradient.addColorStop(0, '#87CEEB');
+      const skyPulse = Math.sin(Date.now() * 0.0003) * 0.1 + 0.9;
+      skyGradient.addColorStop(0, `rgba(135, 206, 235, ${skyPulse})`);
+      skyGradient.addColorStop(0.5, '#87CEEB');
       skyGradient.addColorStop(1, '#B0E0E6');
       ctx.fillStyle = skyGradient;
       ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight * 0.7);
 
-      // Sand (bottom 30%)
-      const sandGradient = ctx.createLinearGradient(
-        0,
-        GAME_CONFIG.gridHeight * 0.7,
-        0,
-        GAME_CONFIG.gridHeight
-      );
+      // Animated clouds with parallax
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      const cloudPositions = [
+        { x: 50, y: 60, speed: 0.02 },
+        { x: 200, y: 40, speed: 0.015 },
+        { x: 400, y: 80, speed: 0.025 },
+        { x: 550, y: 50, speed: 0.018 }
+      ];
+      
+      cloudPositions.forEach((cloud, i) => {
+        const cloudX = (cloud.x + Date.now() * cloud.speed) % (GAME_CONFIG.gridWidth + 100);
+        const cloudY = cloud.y;
+        
+        // Cloud shape with multiple circles
+        ctx.beginPath();
+        ctx.arc(cloudX, cloudY, 15, 0, Math.PI * 2);
+        ctx.arc(cloudX + 12, cloudY - 5, 12, 0, Math.PI * 2);
+        ctx.arc(cloudX + 25, cloudY, 15, 0, Math.PI * 2);
+        ctx.arc(cloudX + 18, cloudY + 5, 10, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Animated ocean waves
+      const oceanY = GAME_CONFIG.gridHeight * 0.7;
+      const waveGradient = ctx.createLinearGradient(0, oceanY - 40, 0, oceanY);
+      waveGradient.addColorStop(0, '#4682B4');
+      waveGradient.addColorStop(0.5, '#5F9EA0');
+      waveGradient.addColorStop(1, '#4682B4');
+      ctx.fillStyle = waveGradient;
+      
+      ctx.beginPath();
+      ctx.moveTo(0, oceanY - 20);
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 20) {
+        const waveHeight = Math.sin((x + Date.now() * 0.1) * 0.02) * 8;
+        ctx.lineTo(x, oceanY - 20 + waveHeight);
+      }
+      ctx.lineTo(GAME_CONFIG.gridWidth, oceanY);
+      ctx.lineTo(0, oceanY);
+      ctx.closePath();
+      ctx.fill();
+
+      // Wave foam (white caps)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 20) {
+        const waveHeight = Math.sin((x + Date.now() * 0.1) * 0.02) * 8;
+        ctx.moveTo(x, oceanY - 20 + waveHeight);
+        ctx.lineTo(x + 10, oceanY - 20 + waveHeight);
+      }
+      ctx.stroke();
+
+      // Sand with texture
+      const sandGradient = ctx.createLinearGradient(0, oceanY, 0, GAME_CONFIG.gridHeight);
       sandGradient.addColorStop(0, '#F4E4BC');
       sandGradient.addColorStop(0.5, '#DEB887');
       sandGradient.addColorStop(1, '#D2B48C');
       ctx.fillStyle = sandGradient;
-      ctx.fillRect(
-        0,
-        GAME_CONFIG.gridHeight * 0.7,
-        GAME_CONFIG.gridWidth,
-        GAME_CONFIG.gridHeight * 0.3
-      );
+      ctx.fillRect(0, oceanY, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight * 0.3);
 
-      // Simple palm trees on sand
-      for (let i = 0; i < 3; i++) {
-        const palmX = 100 + i * 200;
-        const sandLevel = GAME_CONFIG.gridHeight * 0.7;
-
-        // Palm trunk
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(palmX - 4, sandLevel, 8, 60);
-
-        // Palm fronds (simple)
-        ctx.fillStyle = '#228B22';
-        for (let j = 0; j < 6; j++) {
-          const angle = (j / 6) * Math.PI * 2;
-          ctx.save();
-          ctx.translate(palmX, sandLevel);
-          ctx.rotate(angle);
-          ctx.fillRect(-18, -3, 18, 6);
-          ctx.restore();
-        }
-      }
-
-      // Sun
-      ctx.fillStyle = '#FFD700';
-      ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 20;
-      ctx.beginPath();
-      ctx.arc(GAME_CONFIG.gridWidth - 60, 60, 25, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      // Seagulls
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 3; i++) {
-        const birdX = 80 + i * 160;
-        const birdY = 80 + i * 20;
+      // Sand texture dots
+      ctx.fillStyle = 'rgba(210, 180, 140, 0.3)';
+      for (let i = 0; i < 50; i++) {
+        const dotX = (i * 37 + 15) % GAME_CONFIG.gridWidth;
+        const dotY = oceanY + ((i * 23 + 10) % (GAME_CONFIG.gridHeight * 0.3));
         ctx.beginPath();
-        ctx.moveTo(birdX - 8, birdY);
-        ctx.quadraticCurveTo(birdX, birdY - 4, birdX + 8, birdY);
-        ctx.stroke();
-      }
-    } else if (backgroundTheme === 'night') {
-      const nightGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
-      nightGradient.addColorStop(0, '#191970');
-      nightGradient.addColorStop(0.5, '#2F2F4F');
-      nightGradient.addColorStop(1, '#1C1C1C');
-      ctx.fillStyle = nightGradient;
-      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
-
-      // Stars
-      ctx.fillStyle = '#FFFFFF';
-      for (let i = 0; i < 25; i++) {
-        const starX = (i * 47 + 23) % GAME_CONFIG.gridWidth;
-        const starY = (i * 31 + 15) % (GAME_CONFIG.gridHeight * 0.6);
-        const starSize = i % 3 === 0 ? 1.5 : 1;
-        ctx.beginPath();
-        ctx.arc(starX, starY, starSize, 0, 2 * Math.PI);
+        ctx.arc(dotX, dotY, 1, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Moon
-      ctx.fillStyle = '#F0F8FF';
+      // Animated palm trees with swaying
+      for (let i = 0; i < 3; i++) {
+        const palmX = 100 + i * 200;
+        const sandLevel = oceanY;
+        const sway = Math.sin(Date.now() * 0.002 + i) * 3;
+
+        // Palm trunk with texture
+        const trunkGradient = ctx.createLinearGradient(palmX - 4, sandLevel, palmX + 4, sandLevel);
+        trunkGradient.addColorStop(0, '#654321');
+        trunkGradient.addColorStop(0.5, '#8B4513');
+        trunkGradient.addColorStop(1, '#654321');
+        ctx.fillStyle = trunkGradient;
+        
+        ctx.save();
+        ctx.translate(palmX, sandLevel + 30);
+        ctx.rotate(sway * 0.02);
+        ctx.fillRect(-4, -30, 8, 60);
+        
+        // Trunk rings
+        ctx.strokeStyle = '#654321';
+        ctx.lineWidth = 1;
+        for (let ring = 0; ring < 5; ring++) {
+          ctx.beginPath();
+          ctx.moveTo(-4, -30 + ring * 12);
+          ctx.lineTo(4, -30 + ring * 12);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Animated palm fronds
+        ctx.fillStyle = '#228B22';
+        for (let j = 0; j < 8; j++) {
+          const angle = (j / 8) * Math.PI * 2;
+          const frondSway = Math.sin(Date.now() * 0.003 + j) * 0.1;
+          
+          ctx.save();
+          ctx.translate(palmX + sway, sandLevel);
+          ctx.rotate(angle + frondSway);
+          
+          // Frond gradient
+          const frondGradient = ctx.createLinearGradient(0, 0, -25, 0);
+          frondGradient.addColorStop(0, '#228B22');
+          frondGradient.addColorStop(0.7, '#32CD32');
+          frondGradient.addColorStop(1, '#90EE90');
+          ctx.fillStyle = frondGradient;
+          
+          // Frond shape
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-12, -2, -25, -1);
+          ctx.quadraticCurveTo(-12, 2, 0, 0);
+          ctx.fill();
+          
+          ctx.restore();
+        }
+
+        // Coconuts
+        ctx.fillStyle = '#8B4513';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 3;
+        for (let c = 0; c < 2; c++) {
+          ctx.beginPath();
+          ctx.arc(palmX + sway + (c - 0.5) * 6, sandLevel + 5, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+      }
+
+      // Animated sun with rays
+      const sunX = GAME_CONFIG.gridWidth - 60;
+      const sunY = 60;
+      const sunPulse = Math.sin(Date.now() * 0.002) * 2 + 25;
+      
+      // Sun rays (rotating)
+      ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2 + Date.now() * 0.001;
+        const rayLength = 15 + Math.sin(Date.now() * 0.003 + i) * 3;
+        ctx.beginPath();
+        ctx.moveTo(sunX + Math.cos(angle) * 30, sunY + Math.sin(angle) * 30);
+        ctx.lineTo(sunX + Math.cos(angle) * (30 + rayLength), sunY + Math.sin(angle) * (30 + rayLength));
+        ctx.stroke();
+      }
+
+      // Sun glow
+      ctx.fillStyle = '#FFD700';
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 30;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sunPulse, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Sun core
+      ctx.shadowBlur = 15;
+      ctx.fillStyle = '#FFA500';
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, sunPulse - 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Animated seagulls with flapping wings
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      const seagullPositions = [
+        { x: 80, y: 80, speed: 0.03 },
+        { x: 240, y: 100, speed: 0.025 },
+        { x: 400, y: 70, speed: 0.035 }
+      ];
+      
+      seagullPositions.forEach((bird, i) => {
+        const birdX = (bird.x + Date.now() * bird.speed) % (GAME_CONFIG.gridWidth + 50);
+        const birdY = bird.y + Math.sin(Date.now() * 0.003 + i) * 5;
+        const wingFlap = Math.sin(Date.now() * 0.01 + i) * 4;
+        
+        // Bird body
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(birdX, birdY, 4, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wings
+        ctx.beginPath();
+        ctx.moveTo(birdX - 8, birdY + wingFlap);
+        ctx.quadraticCurveTo(birdX - 4, birdY - 4 + wingFlap, birdX, birdY);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(birdX + 8, birdY + wingFlap);
+        ctx.quadraticCurveTo(birdX + 4, birdY - 4 + wingFlap, birdX, birdY);
+        ctx.stroke();
+      });
+
+      // Beach items (starfish, shells)
+      ctx.fillStyle = '#FF6347';
+      const starfishPos = [120, 320, 480];
+      starfishPos.forEach((x) => {
+        const y = oceanY + 40;
+        // Starfish
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(Date.now() * 0.0001);
+        for (let i = 0; i < 5; i++) {
+          ctx.save();
+          ctx.rotate((i * Math.PI * 2) / 5);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(3, 8);
+          ctx.lineTo(0, 6);
+          ctx.lineTo(-3, 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+        ctx.restore();
+      });
+
+      // Shells
+      ctx.fillStyle = '#FFE4C4';
+      ctx.strokeStyle = '#DEB887';
+      ctx.lineWidth = 1;
+      const shellPos = [200, 380, 520];
+      shellPos.forEach((x) => {
+        const y = oceanY + 50;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI);
+        ctx.fill();
+        ctx.stroke();
+      });
+    } else if (backgroundTheme === 'night') {
+      // ENHANCED NIGHT: Animated stars, shooting stars, aurora, moon phases, city skyline
+
+      // Animated night sky gradient
+      const nightGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
+      nightGradient.addColorStop(0, '#0a0a2e');
+      nightGradient.addColorStop(0.3, '#16213e');
+      nightGradient.addColorStop(0.7, '#1a1a3e');
+      nightGradient.addColorStop(1, '#0f0f1e');
+      ctx.fillStyle = nightGradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+
+      // Aurora Borealis effect (animated)
+      const auroraGradient = ctx.createLinearGradient(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight * 0.4);
+      const auroraPhase = Date.now() * 0.0005;
+      auroraGradient.addColorStop(0, `rgba(0, 255, 127, ${0.1 + Math.sin(auroraPhase) * 0.05})`);
+      auroraGradient.addColorStop(0.5, `rgba(138, 43, 226, ${0.15 + Math.cos(auroraPhase * 1.3) * 0.05})`);
+      auroraGradient.addColorStop(1, `rgba(0, 191, 255, ${0.1 + Math.sin(auroraPhase * 0.8) * 0.05})`);
+      ctx.fillStyle = auroraGradient;
+      
+      ctx.beginPath();
+      ctx.moveTo(0, 50);
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 30) {
+        const wave1 = Math.sin((x + Date.now() * 0.05) * 0.01) * 20;
+        const wave2 = Math.cos((x + Date.now() * 0.03) * 0.015) * 15;
+        ctx.lineTo(x, 80 + wave1 + wave2);
+      }
+      ctx.lineTo(GAME_CONFIG.gridWidth, 0);
+      ctx.lineTo(0, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      // Twinkling stars with different sizes and brightness
+      for (let i = 0; i < 60; i++) {
+        const starX = (i * 47 + 23) % GAME_CONFIG.gridWidth;
+        const starY = (i * 31 + 15) % (GAME_CONFIG.gridHeight * 0.7);
+        const twinkle = Math.sin(Date.now() * 0.003 + i) * 0.5 + 0.5;
+        const starSize = (i % 4 === 0 ? 2 : i % 3 === 0 ? 1.5 : 1) * twinkle;
+        
+        // Star glow
+        ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.8})`;
+        ctx.shadowColor = '#FFFFFF';
+        ctx.shadowBlur = 3;
+        ctx.beginPath();
+        ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Star sparkle (cross shape for bright stars)
+        if (i % 5 === 0 && twinkle > 0.7) {
+          ctx.strokeStyle = `rgba(255, 255, 255, ${twinkle * 0.6})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(starX - 3, starY);
+          ctx.lineTo(starX + 3, starY);
+          ctx.moveTo(starX, starY - 3);
+          ctx.lineTo(starX, starY + 3);
+          ctx.stroke();
+        }
+      }
+      ctx.shadowBlur = 0;
+
+      // Shooting stars
+      const shootingStarTime = Date.now() * 0.001;
+      if (Math.floor(shootingStarTime) % 5 < 2) { // Appears every 5 seconds for 2 seconds
+        const progress = (shootingStarTime % 5) / 2;
+        const shootX = progress * GAME_CONFIG.gridWidth;
+        const shootY = 50 + progress * 100;
+        
+        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - progress})`;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#FFFFFF';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(shootX, shootY);
+        ctx.lineTo(shootX - 30, shootY - 15);
+        ctx.stroke();
+        
+        // Shooting star trail
+        ctx.strokeStyle = `rgba(135, 206, 250, ${(1 - progress) * 0.5})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(shootX - 30, shootY - 15);
+        ctx.lineTo(shootX - 50, shootY - 25);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Animated moon with phases and glow
+      const moonX = GAME_CONFIG.gridWidth - 80;
+      const moonY = 70;
+      const moonPhase = (Date.now() * 0.0001) % 1;
+      
+      // Moon glow (pulsing)
+      const moonGlow = Math.sin(Date.now() * 0.002) * 5 + 20;
+      ctx.fillStyle = 'rgba(240, 248, 255, 0.2)';
       ctx.shadowColor = '#F0F8FF';
+      ctx.shadowBlur = moonGlow;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 35, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Moon body
+      ctx.fillStyle = '#F0F8FF';
       ctx.shadowBlur = 15;
       ctx.beginPath();
-      ctx.arc(GAME_CONFIG.gridWidth - 60, 50, 25, 0, 2 * Math.PI);
+      ctx.arc(moonX, moonY, 28, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Moon craters
+      // Moon craters with depth
       ctx.fillStyle = '#E6E6FA';
-      ctx.beginPath();
-      ctx.arc(GAME_CONFIG.gridWidth - 65, 45, 3, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(GAME_CONFIG.gridWidth - 55, 55, 2, 0, 2 * Math.PI);
-      ctx.fill();
-    } else if (backgroundTheme === 'retro') {
-      const retroGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
-      retroGradient.addColorStop(0, '#FF1493');
-      retroGradient.addColorStop(0.3, '#9932CC');
-      retroGradient.addColorStop(0.7, '#4B0082');
-      retroGradient.addColorStop(1, '#000000');
-      ctx.fillStyle = retroGradient;
-      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
-
-      // Grid
-      ctx.strokeStyle = '#00FFFF';
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = 0.3;
-      for (let i = 0; i < GAME_CONFIG.gridWidth; i += 40) {
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 2;
+      const craters = [
+        { x: -8, y: -5, r: 4 },
+        { x: 5, y: 8, r: 3 },
+        { x: -3, y: 10, r: 2.5 },
+        { x: 10, y: -8, r: 3.5 },
+        { x: -10, y: 5, r: 2 }
+      ];
+      craters.forEach(crater => {
         ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, GAME_CONFIG.gridHeight);
-        ctx.stroke();
-      }
-      for (let i = 0; i < GAME_CONFIG.gridHeight; i += 30) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(GAME_CONFIG.gridWidth, i);
-        ctx.stroke();
-      }
-      ctx.globalAlpha = 1;
-
-      // Neon sun
-      ctx.fillStyle = '#FFFF00';
-      ctx.shadowColor = '#FFFF00';
-      ctx.shadowBlur = 20;
-      ctx.beginPath();
-      ctx.arc(GAME_CONFIG.gridWidth - 80, 60, 20, 0, 2 * Math.PI);
-      ctx.fill();
+        ctx.arc(moonX + crater.x, moonY + crater.y, crater.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
       ctx.shadowBlur = 0;
-    } else if (backgroundTheme === 'desert') {
-      const desertGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
-      desertGradient.addColorStop(0, '#FFE4B5');
-      desertGradient.addColorStop(0.3, '#DEB887');
-      desertGradient.addColorStop(0.7, '#D2B48C');
-      desertGradient.addColorStop(1, '#BC9A6A');
-      ctx.fillStyle = desertGradient;
-      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
 
-      // Sand dunes
-      ctx.fillStyle = '#F4A460';
+      // City skyline silhouette at bottom
+      const skylineY = GAME_CONFIG.gridHeight - 80;
+      ctx.fillStyle = '#0a0a1a';
+      
+      // Buildings with windows
+      const buildings = [
+        { x: 0, w: 60, h: 60 },
+        { x: 60, w: 50, h: 80 },
+        { x: 110, w: 70, h: 50 },
+        { x: 180, w: 55, h: 70 },
+        { x: 235, w: 65, h: 90 },
+        { x: 300, w: 50, h: 55 },
+        { x: 350, w: 80, h: 75 },
+        { x: 430, w: 60, h: 65 },
+        { x: 490, w: 70, h: 85 },
+        { x: 560, w: 40, h: 50 }
+      ];
+      
+      buildings.forEach(building => {
+        // Building body
+        ctx.fillStyle = '#0a0a1a';
+        ctx.fillRect(building.x, skylineY + (80 - building.h), building.w, building.h);
+        
+        // Windows (some lit, some dark)
+        const windowRows = Math.floor(building.h / 12);
+        const windowCols = Math.floor(building.w / 12);
+        
+        for (let row = 0; row < windowRows; row++) {
+          for (let col = 0; col < windowCols; col++) {
+            const isLit = Math.random() > 0.4;
+            ctx.fillStyle = isLit ? '#FFD700' : '#1a1a2a';
+            const windowX = building.x + 5 + col * 12;
+            const windowY = skylineY + (80 - building.h) + 5 + row * 12;
+            ctx.fillRect(windowX, windowY, 8, 8);
+            
+            // Window glow
+            if (isLit) {
+              ctx.shadowColor = '#FFD700';
+              ctx.shadowBlur = 3;
+              ctx.fillRect(windowX, windowY, 8, 8);
+              ctx.shadowBlur = 0;
+            }
+          }
+        }
+        
+        // Building antenna/spire on some buildings
+        if (building.h > 70) {
+          ctx.strokeStyle = '#333';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(building.x + building.w / 2, skylineY + (80 - building.h));
+          ctx.lineTo(building.x + building.w / 2, skylineY + (80 - building.h) - 15);
+          ctx.stroke();
+          
+          // Blinking red light on antenna
+          if (Math.floor(Date.now() * 0.002) % 2 === 0) {
+            ctx.fillStyle = '#FF0000';
+            ctx.shadowColor = '#FF0000';
+            ctx.shadowBlur = 5;
+            ctx.beginPath();
+            ctx.arc(building.x + building.w / 2, skylineY + (80 - building.h) - 15, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        }
+      });
+
+      // Distant mountains
+      ctx.fillStyle = 'rgba(30, 30, 50, 0.6)';
       ctx.beginPath();
-      ctx.moveTo(0, GAME_CONFIG.gridHeight * 0.8);
+      ctx.moveTo(0, GAME_CONFIG.gridHeight - 120);
       for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 50) {
-        const duneHeight = Math.sin(x * 0.01) * 30 + GAME_CONFIG.gridHeight * 0.8;
-        ctx.lineTo(x, duneHeight);
+        const mountainHeight = Math.sin(x * 0.01) * 40 + 60;
+        ctx.lineTo(x, GAME_CONFIG.gridHeight - mountainHeight);
       }
       ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
       ctx.lineTo(0, GAME_CONFIG.gridHeight);
       ctx.closePath();
       ctx.fill();
 
-      // Detailed sun with rays
-      ctx.fillStyle = '#FFD700';
-      ctx.shadowColor = '#FFD700';
-      ctx.shadowBlur = 25;
-      ctx.beginPath();
-      ctx.arc(GAME_CONFIG.gridWidth - 70, 70, 30, 0, 2 * Math.PI);
-      ctx.fill();
+      // Fireflies/glowing particles
+      ctx.fillStyle = '#FFFF00';
+      for (let i = 0; i < 15; i++) {
+        const flyX = (i * 73 + Date.now() * 0.02) % GAME_CONFIG.gridWidth;
+        const flyY = GAME_CONFIG.gridHeight - 100 + Math.sin(Date.now() * 0.003 + i) * 30;
+        const glow = Math.sin(Date.now() * 0.005 + i) * 0.5 + 0.5;
+        
+        ctx.globalAlpha = glow;
+        ctx.shadowColor = '#FFFF00';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(flyX, flyY, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    } else if (backgroundTheme === 'retro') {
+      // ENHANCED RETRO: Animated synthwave grid, neon mountains, glitch effects, scanlines
+
+      // Animated synthwave gradient
+      const retroGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
+      const colorShift = Math.sin(Date.now() * 0.0005) * 20;
+      retroGradient.addColorStop(0, `rgb(${255 + colorShift}, 20, ${147 + colorShift})`);
+      retroGradient.addColorStop(0.3, '#9932CC');
+      retroGradient.addColorStop(0.6, '#4B0082');
+      retroGradient.addColorStop(1, '#000000');
+      ctx.fillStyle = retroGradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+
+      // Animated perspective grid (moving toward viewer)
+      const gridOffset = (Date.now() * 0.1) % 30;
+      ctx.strokeStyle = '#00FFFF';
+      ctx.shadowColor = '#00FFFF';
+      ctx.shadowBlur = 3;
+      
+      // Horizontal lines with perspective
+      for (let i = 0; i < 15; i++) {
+        const y = GAME_CONFIG.gridHeight * 0.5 + i * 30 - gridOffset;
+        const perspective = (i + 1) / 15;
+        const lineWidth = 1 + perspective * 2;
+        const alpha = 0.2 + perspective * 0.3;
+        
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = lineWidth;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(GAME_CONFIG.gridWidth, y);
+        ctx.stroke();
+      }
+      
+      // Vertical lines with perspective
+      for (let i = 0; i < 20; i++) {
+        const centerX = GAME_CONFIG.gridWidth / 2;
+        const xOffset = (i - 10) * 40;
+        const perspective = Math.abs(i - 10) / 10;
+        const alpha = 0.2 + (1 - perspective) * 0.3;
+        
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(centerX + xOffset, GAME_CONFIG.gridHeight * 0.5);
+        
+        // Converge toward horizon
+        const topX = centerX + xOffset * 0.3;
+        ctx.lineTo(topX, GAME_CONFIG.gridHeight);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
 
-      // Sun rays
-      ctx.strokeStyle = '#FFD700';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const startX = GAME_CONFIG.gridWidth - 70 + Math.cos(angle) * 35;
-        const startY = 70 + Math.sin(angle) * 35;
-        const endX = GAME_CONFIG.gridWidth - 70 + Math.cos(angle) * 45;
-        const endY = 70 + Math.sin(angle) * 45;
+      // Neon mountain range (layered)
+      const mountainLayers = [
+        { color: '#FF1493', alpha: 0.6, offset: 0, height: 0.4 },
+        { color: '#9932CC', alpha: 0.7, offset: 20, height: 0.5 },
+        { color: '#4B0082', alpha: 0.8, offset: 40, height: 0.6 }
+      ];
+      
+      mountainLayers.forEach(layer => {
+        ctx.strokeStyle = layer.color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = layer.color;
+        ctx.shadowBlur = 10;
+        ctx.globalAlpha = layer.alpha;
+        
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(endX, endY);
+        ctx.moveTo(0, GAME_CONFIG.gridHeight * layer.height + layer.offset);
+        
+        for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 40) {
+          const peakHeight = Math.sin(x * 0.02 + layer.offset * 0.1) * 50 + 
+                            Math.cos(x * 0.03 + layer.offset * 0.05) * 30;
+          ctx.lineTo(x, GAME_CONFIG.gridHeight * layer.height + layer.offset - peakHeight);
+        }
+        
+        ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+        ctx.lineTo(0, GAME_CONFIG.gridHeight);
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Fill with gradient
+        const mountainGradient = ctx.createLinearGradient(
+          0, 
+          GAME_CONFIG.gridHeight * layer.height, 
+          0, 
+          GAME_CONFIG.gridHeight
+        );
+        mountainGradient.addColorStop(0, layer.color + '00');
+        mountainGradient.addColorStop(1, layer.color + '40');
+        ctx.fillStyle = mountainGradient;
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+
+      // Animated neon sun with rings
+      const sunX = GAME_CONFIG.gridWidth / 2;
+      const sunY = GAME_CONFIG.gridHeight * 0.35;
+      const sunPulse = Math.sin(Date.now() * 0.003) * 3;
+      
+      // Sun rings (expanding)
+      for (let i = 0; i < 5; i++) {
+        const ringPhase = (Date.now() * 0.001 + i * 0.5) % 2;
+        const ringRadius = 25 + ringPhase * 30;
+        const ringAlpha = 1 - ringPhase / 2;
+        
+        ctx.strokeStyle = `rgba(255, 255, 0, ${ringAlpha * 0.6})`;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#FFFF00';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      // Sun core with gradient
+      const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 25 + sunPulse);
+      sunGradient.addColorStop(0, '#FFFFFF');
+      sunGradient.addColorStop(0.3, '#FFFF00');
+      sunGradient.addColorStop(0.7, '#FF00FF');
+      sunGradient.addColorStop(1, '#FF1493');
+      
+      ctx.fillStyle = sunGradient;
+      ctx.shadowColor = '#FFFF00';
+      ctx.shadowBlur = 30;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 25 + sunPulse, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Sun horizontal lines
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 0;
+      for (let i = -3; i <= 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(sunX - 25, sunY + i * 7);
+        ctx.lineTo(sunX + 25, sunY + i * 7);
         ctx.stroke();
       }
 
-      // Cacti
-      ctx.fillStyle = '#228B22';
-      for (let i = 0; i < 4; i++) {
-        const cactusX = 100 + i * 140;
-        const cactusHeight = 60 + (i % 3) * 20;
-
-        // Main cactus body
-        ctx.fillRect(cactusX - 8, GAME_CONFIG.gridHeight - cactusHeight, 16, cactusHeight);
-
-        // Cactus arms
-        if (i % 2 === 0) {
-          ctx.fillRect(cactusX - 20, GAME_CONFIG.gridHeight - cactusHeight + 20, 12, 8);
-          ctx.fillRect(cactusX - 20, GAME_CONFIG.gridHeight - cactusHeight + 20, 8, 25);
-        }
-        if (i % 3 === 0) {
-          ctx.fillRect(cactusX + 8, GAME_CONFIG.gridHeight - cactusHeight + 30, 12, 8);
-          ctx.fillRect(cactusX + 16, GAME_CONFIG.gridHeight - cactusHeight + 30, 8, 20);
-        }
-
-        // Cactus spines
-        ctx.strokeStyle = '#006400';
-        ctx.lineWidth = 1;
-        for (let j = 0; j < cactusHeight; j += 8) {
+      // Floating geometric shapes (triangles, squares)
+      const shapes = [
+        { x: 100, y: 100, type: 'triangle', size: 15, speed: 0.02 },
+        { x: 300, y: 150, type: 'square', size: 12, speed: 0.015 },
+        { x: 500, y: 120, type: 'triangle', size: 18, speed: 0.025 },
+        { x: 200, y: 200, type: 'square', size: 10, speed: 0.018 }
+      ];
+      
+      shapes.forEach((shape, i) => {
+        const shapeX = shape.x + Math.sin(Date.now() * shape.speed + i) * 30;
+        const shapeY = shape.y + Math.cos(Date.now() * shape.speed * 0.7 + i) * 20;
+        const rotation = Date.now() * 0.001 + i;
+        const glowIntensity = Math.sin(Date.now() * 0.003 + i) * 0.3 + 0.5;
+        
+        ctx.save();
+        ctx.translate(shapeX, shapeY);
+        ctx.rotate(rotation);
+        
+        ctx.strokeStyle = '#00FFFF';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#00FFFF';
+        ctx.shadowBlur = 10 * glowIntensity;
+        ctx.globalAlpha = 0.6;
+        
+        if (shape.type === 'triangle') {
           ctx.beginPath();
-          ctx.moveTo(cactusX - 8, GAME_CONFIG.gridHeight - cactusHeight + j);
-          ctx.lineTo(cactusX - 12, GAME_CONFIG.gridHeight - cactusHeight + j);
-          ctx.moveTo(cactusX + 8, GAME_CONFIG.gridHeight - cactusHeight + j);
-          ctx.lineTo(cactusX + 12, GAME_CONFIG.gridHeight - cactusHeight + j);
+          ctx.moveTo(0, -shape.size);
+          ctx.lineTo(shape.size, shape.size);
+          ctx.lineTo(-shape.size, shape.size);
+          ctx.closePath();
+          ctx.stroke();
+        } else {
+          ctx.strokeRect(-shape.size / 2, -shape.size / 2, shape.size, shape.size);
+        }
+        
+        ctx.restore();
+      });
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+
+      // Scanlines effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      for (let y = 0; y < GAME_CONFIG.gridHeight; y += 4) {
+        ctx.fillRect(0, y, GAME_CONFIG.gridWidth, 2);
+      }
+
+      // Random glitch effect (occasional)
+      if (Math.random() < 0.02) {
+        const glitchY = Math.random() * GAME_CONFIG.gridHeight;
+        const glitchHeight = 20 + Math.random() * 30;
+        const glitchOffset = (Math.random() - 0.5) * 20;
+        
+        ctx.globalAlpha = 0.7;
+        ctx.fillStyle = '#FF00FF';
+        ctx.fillRect(glitchOffset, glitchY, GAME_CONFIG.gridWidth, 2);
+        ctx.fillStyle = '#00FFFF';
+        ctx.fillRect(-glitchOffset, glitchY + 2, GAME_CONFIG.gridWidth, 2);
+        ctx.globalAlpha = 1;
+      }
+
+      // Neon text "SYNTHWAVE" at top
+      ctx.font = 'bold 20px Arial';
+      ctx.strokeStyle = '#FF1493';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = '#FF1493';
+      ctx.shadowBlur = 15;
+      ctx.globalAlpha = 0.3;
+      ctx.strokeText('SYNTHWAVE', 20, 30);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowBlur = 10;
+      ctx.fillText('SYNTHWAVE', 20, 30);
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+    } else if (backgroundTheme === 'desert') {
+      // ENHANCED DESERT: Animated heat waves, moving sand, tumbleweeds, vultures, mirages
+
+      // Animated desert sky with heat shimmer
+      const desertGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight * 0.6);
+      const heatShimmer = Math.sin(Date.now() * 0.001) * 10;
+      desertGradient.addColorStop(0, '#FFE4B5');
+      desertGradient.addColorStop(0.3, '#FFDAB9');
+      desertGradient.addColorStop(0.6, '#DEB887');
+      desertGradient.addColorStop(1, '#D2B48C');
+      ctx.fillStyle = desertGradient;
+      ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+
+      // Heat wave distortion effect
+      ctx.strokeStyle = 'rgba(255, 228, 181, 0.3)';
+      ctx.lineWidth = 2;
+      for (let y = 100; y < GAME_CONFIG.gridHeight * 0.6; y += 40) {
+        ctx.beginPath();
+        for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 10) {
+          const wave = Math.sin((x + Date.now() * 0.1 + y) * 0.05) * 3;
+          if (x === 0) {
+            ctx.moveTo(x, y + wave);
+          } else {
+            ctx.lineTo(x, y + wave);
+          }
+        }
+        ctx.stroke();
+      }
+
+      // Distant mountains (heat haze effect)
+      ctx.fillStyle = 'rgba(139, 90, 43, 0.3)';
+      ctx.beginPath();
+      ctx.moveTo(0, GAME_CONFIG.gridHeight * 0.5);
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 60) {
+        const mountainHeight = Math.sin(x * 0.015) * 40 + Math.cos(x * 0.01) * 30;
+        const heatWave = Math.sin(Date.now() * 0.002 + x * 0.01) * 5;
+        ctx.lineTo(x, GAME_CONFIG.gridHeight * 0.5 - mountainHeight + heatWave);
+      }
+      ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight * 0.6);
+      ctx.lineTo(0, GAME_CONFIG.gridHeight * 0.6);
+      ctx.closePath();
+      ctx.fill();
+
+      // Animated sand dunes with shadows
+      const duneY = GAME_CONFIG.gridHeight * 0.7;
+      
+      // Dune shadows
+      ctx.fillStyle = 'rgba(188, 154, 106, 0.5)';
+      ctx.beginPath();
+      ctx.moveTo(0, duneY);
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 40) {
+        const duneHeight = Math.sin((x + Date.now() * 0.01) * 0.015) * 35 + 
+                          Math.cos(x * 0.01) * 25;
+        ctx.lineTo(x, duneY + duneHeight);
+      }
+      ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+      ctx.lineTo(0, GAME_CONFIG.gridHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      // Main dunes
+      ctx.fillStyle = '#F4A460';
+      ctx.beginPath();
+      ctx.moveTo(0, duneY);
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 40) {
+        const duneHeight = Math.sin((x + Date.now() * 0.01) * 0.015) * 35 + 
+                          Math.cos(x * 0.01) * 25;
+        ctx.lineTo(x, duneY + duneHeight - 5);
+      }
+      ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+      ctx.lineTo(0, GAME_CONFIG.gridHeight);
+      ctx.closePath();
+      ctx.fill();
+
+      // Sand texture (wind-blown patterns)
+      ctx.strokeStyle = 'rgba(210, 180, 140, 0.3)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 30; i++) {
+        const lineX = (i * 47 + Date.now() * 0.02) % GAME_CONFIG.gridWidth;
+        const lineY = duneY + 20 + (i * 13) % 100;
+        ctx.beginPath();
+        ctx.moveTo(lineX, lineY);
+        ctx.lineTo(lineX + 20, lineY);
+        ctx.stroke();
+      }
+
+      // Animated tumbleweeds
+      const tumbleweeds = [
+        { x: 150, y: duneY + 30, speed: 0.05, size: 15 },
+        { x: 400, y: duneY + 40, speed: 0.03, size: 12 }
+      ];
+      
+      tumbleweeds.forEach((tumbleweed, i) => {
+        const twX = (tumbleweed.x + Date.now() * tumbleweed.speed) % (GAME_CONFIG.gridWidth + 50);
+        const twY = tumbleweed.y + Math.sin(Date.now() * 0.003 + i) * 5;
+        const rotation = (Date.now() * tumbleweed.speed * 0.01) % (Math.PI * 2);
+        
+        ctx.save();
+        ctx.translate(twX, twY);
+        ctx.rotate(rotation);
+        
+        // Tumbleweed structure
+        ctx.strokeStyle = '#8B7355';
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.7;
+        
+        // Draw spiky ball
+        for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(angle) * tumbleweed.size, Math.sin(angle) * tumbleweed.size);
           ctx.stroke();
         }
+        
+        ctx.restore();
+        ctx.globalAlpha = 1;
+      });
+
+      // Detailed cacti with flowers
+      ctx.fillStyle = '#228B22';
+      const cactiPositions = [
+        { x: 80, height: 70, arms: 2 },
+        { x: 250, height: 85, arms: 1 },
+        { x: 420, height: 65, arms: 3 },
+        { x: 550, height: 90, arms: 2 }
+      ];
+      
+      cactiPositions.forEach((cactus, i) => {
+        const cactusX = cactus.x;
+        const cactusHeight = cactus.height;
+        const baseY = GAME_CONFIG.gridHeight - 20;
+        
+        // Cactus shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.fillRect(cactusX + 5, baseY - 5, 18, 8);
+        
+        // Main cactus body with gradient
+        const cactusGradient = ctx.createLinearGradient(cactusX - 10, 0, cactusX + 10, 0);
+        cactusGradient.addColorStop(0, '#1a6b1a');
+        cactusGradient.addColorStop(0.5, '#228B22');
+        cactusGradient.addColorStop(1, '#1a6b1a');
+        ctx.fillStyle = cactusGradient;
+        ctx.fillRect(cactusX - 10, baseY - cactusHeight, 20, cactusHeight);
+        
+        // Cactus ridges
+        ctx.strokeStyle = '#1a6b1a';
+        ctx.lineWidth = 2;
+        for (let ridge = 0; ridge < 3; ridge++) {
+          ctx.beginPath();
+          ctx.moveTo(cactusX - 10 + ridge * 7, baseY - cactusHeight);
+          ctx.lineTo(cactusX - 10 + ridge * 7, baseY);
+          ctx.stroke();
+        }
+        
+        // Cactus arms
+        if (cactus.arms >= 1) {
+          ctx.fillStyle = cactusGradient;
+          ctx.fillRect(cactusX - 25, baseY - cactusHeight + 25, 15, 10);
+          ctx.fillRect(cactusX - 25, baseY - cactusHeight + 25, 10, 30);
+        }
+        if (cactus.arms >= 2) {
+          ctx.fillRect(cactusX + 10, baseY - cactusHeight + 35, 15, 10);
+          ctx.fillRect(cactusX + 20, baseY - cactusHeight + 35, 10, 25);
+        }
+        if (cactus.arms >= 3) {
+          ctx.fillRect(cactusX - 25, baseY - cactusHeight + 50, 15, 10);
+          ctx.fillRect(cactusX - 25, baseY - cactusHeight + 50, 10, 20);
+        }
+        
+        // Cactus spines (detailed)
+        ctx.strokeStyle = '#006400';
+        ctx.lineWidth = 1;
+        for (let j = 0; j < cactusHeight; j += 10) {
+          for (let spine = 0; spine < 4; spine++) {
+            const spineX = cactusX - 10 + spine * 7;
+            ctx.beginPath();
+            ctx.moveTo(spineX, baseY - cactusHeight + j);
+            ctx.lineTo(spineX - 4, baseY - cactusHeight + j - 2);
+            ctx.moveTo(spineX, baseY - cactusHeight + j);
+            ctx.lineTo(spineX + 4, baseY - cactusHeight + j - 2);
+            ctx.stroke();
+          }
+        }
+        
+        // Cactus flower (on some)
+        if (i % 2 === 0) {
+          ctx.fillStyle = '#FF69B4';
+          ctx.shadowColor = '#FF69B4';
+          ctx.shadowBlur = 5;
+          for (let petal = 0; petal < 6; petal++) {
+            const angle = (petal / 6) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(
+              cactusX + Math.cos(angle) * 4,
+              baseY - cactusHeight + Math.sin(angle) * 4,
+              3,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+          }
+          // Flower center
+          ctx.fillStyle = '#FFD700';
+          ctx.beginPath();
+          ctx.arc(cactusX, baseY - cactusHeight, 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      });
+
+      // Animated sun with intense heat effect
+      const sunX = GAME_CONFIG.gridWidth - 80;
+      const sunY = 80;
+      const sunPulse = Math.sin(Date.now() * 0.002) * 3;
+      
+      // Sun heat rings (expanding)
+      for (let i = 0; i < 4; i++) {
+        const ringPhase = (Date.now() * 0.0008 + i * 0.3) % 1.5;
+        const ringRadius = 35 + ringPhase * 25;
+        const ringAlpha = (1 - ringPhase / 1.5) * 0.3;
+        
+        ctx.strokeStyle = `rgba(255, 140, 0, ${ringAlpha})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(sunX, sunY, ringRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      // Sun glow
+      ctx.fillStyle = '#FFD700';
+      ctx.shadowColor = '#FF8C00';
+      ctx.shadowBlur = 40;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 32 + sunPulse, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Sun core
+      const sunGradient = ctx.createRadialGradient(sunX - 5, sunY - 5, 0, sunX, sunY, 30);
+      sunGradient.addColorStop(0, '#FFFFFF');
+      sunGradient.addColorStop(0.4, '#FFD700');
+      sunGradient.addColorStop(1, '#FF8C00');
+      ctx.fillStyle = sunGradient;
+      ctx.shadowBlur = 20;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 30 + sunPulse, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      // Animated sun rays
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.shadowColor = '#FFD700';
+      ctx.shadowBlur = 10;
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2 + Date.now() * 0.0005;
+        const rayLength = 18 + Math.sin(Date.now() * 0.003 + i) * 5;
+        const startRadius = 35 + sunPulse;
+        
+        ctx.beginPath();
+        ctx.moveTo(sunX + Math.cos(angle) * startRadius, sunY + Math.sin(angle) * startRadius);
+        ctx.lineTo(
+          sunX + Math.cos(angle) * (startRadius + rayLength),
+          sunY + Math.sin(angle) * (startRadius + rayLength)
+        );
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+
+      // Circling vultures
+      const vultureCount = 2;
+      for (let i = 0; i < vultureCount; i++) {
+        const angle = (Date.now() * 0.0003 + i * Math.PI) % (Math.PI * 2);
+        const radius = 60;
+        const vultureX = sunX - 100 + Math.cos(angle) * radius;
+        const vultureY = 120 + Math.sin(angle) * 30;
+        const wingFlap = Math.sin(Date.now() * 0.008 + i) * 3;
+        
+        // Vulture body
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.ellipse(vultureX, vultureY, 5, 4, angle, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Vulture wings
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(vultureX - 8, vultureY + wingFlap);
+        ctx.quadraticCurveTo(vultureX - 5, vultureY - 5 + wingFlap, vultureX, vultureY);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(vultureX + 8, vultureY + wingFlap);
+        ctx.quadraticCurveTo(vultureX + 5, vultureY - 5 + wingFlap, vultureX, vultureY);
+        ctx.stroke();
+      }
+
+      // Desert mirage effect (shimmering oasis illusion)
+      const mirageAlpha = Math.sin(Date.now() * 0.002) * 0.15 + 0.15;
+      ctx.fillStyle = `rgba(135, 206, 250, ${mirageAlpha})`;
+      ctx.beginPath();
+      ctx.ellipse(GAME_CONFIG.gridWidth / 2, duneY + 50, 80, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Palm tree reflection in mirage
+      ctx.globalAlpha = mirageAlpha * 0.5;
+      ctx.fillStyle = '#228B22';
+      ctx.fillRect(GAME_CONFIG.gridWidth / 2 - 3, duneY + 45, 6, 15);
+      ctx.globalAlpha = 1;
+
+      // Dust particles in wind
+      ctx.fillStyle = 'rgba(210, 180, 140, 0.4)';
+      for (let i = 0; i < 20; i++) {
+        const dustX = (i * 67 + Date.now() * 0.08) % GAME_CONFIG.gridWidth;
+        const dustY = 150 + (i * 23) % 200 + Math.sin(Date.now() * 0.004 + i) * 10;
+        ctx.beginPath();
+        ctx.arc(dustX, dustY, 1.5, 0, Math.PI * 2);
+        ctx.fill();
       }
     } else if (backgroundTheme === 'underwater') {
       // UNDERWATER LEVEL - Ocean background
@@ -4010,8 +4955,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           if (projectile.active) {
             if (projectile.type === 'inkBlob') {
               renderInkBlob(ctx, projectile, Date.now());
-            } else {
+            } else if (projectile.type === 'pumpkin') {
               renderPumpkin(ctx, projectile, Date.now());
+            } else if (projectile.type === 'fireball') {
+              renderFireball(ctx, projectile, Date.now());
+            } else if (projectile.type === 'rocket') {
+              renderRocket(ctx, projectile, Date.now());
             }
           }
         });
@@ -4428,7 +5377,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               Avoid flying witches, evil pumpkins, and spooky ghosts! Collect shields for protection!
             </p>
             <p className="mb-1 text-red-600 font-semibold">
-              🐙 OCTOPUS BOSS at 100 pts! 🦇 BAT BOSS at 250 pts!
+              🐙 OCTOPUS at 100 pts! 🦇 BAT at 250 pts!
             </p>
             <p className="mb-1 text-yellow-600 font-bold">
               ⚔️ BOSS CHASES YOU! Collide to attack! Dodge projectiles!
@@ -4444,6 +5393,9 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             </p>
             <p className="mb-1">
               Avoid snakes (watch for coiling ones!) and obstacles. Collect shields for protection!
+            </p>
+            <p className="mb-1 text-blue-600 font-semibold">
+              🐱 CAT BOSS at 100 pts! 🚀 MISSILE BOSS at 250 pts!
             </p>
             <p className="text-green-600 font-semibold">
               🤖 AI adapts difficulty based on your performance!

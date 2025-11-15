@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { navigateTo } from '@devvit/web/client';
 import { useCounter } from './hooks/useCounter';
 import { useGameScore } from './hooks/useGameScore';
+//import { GameKonva as Game } from './components/GameKonva';
 import { Game } from './components/Game';
 import { Leaderboard } from './components/Leaderboard';
 import { GameInstructions } from './components/GameInstructions';

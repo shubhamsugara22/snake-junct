@@ -61,7 +61,7 @@ class ProjectilePool {
 const checkBossTrigger = (score: number, defeatedBosses: BossType[], halloweenMode: boolean): BossType | null => {
   if (halloweenMode) {
     // Halloween bosses - ONLY octopus and bat
-    if (score >= 500 && !defeatedBosses.includes('bat')) {
+    if (score >= 250 && !defeatedBosses.includes('bat')) {
       return 'bat';
     }
     if (score >= 100 && !defeatedBosses.includes('octopus')) {
@@ -69,7 +69,7 @@ const checkBossTrigger = (score: number, defeatedBosses: BossType[], halloweenMo
     }
   } else {
     // Normal mode bosses - ONLY cat and missile
-    if (score >= 500 && !defeatedBosses.includes('missile')) {
+    if (score >= 250 && !defeatedBosses.includes('missile')) {
       return 'missile';
     }
     if (score >= 100 && !defeatedBosses.includes('cat')) {
@@ -1089,7 +1089,12 @@ const renderRocket = (ctx: CanvasRenderingContext2D, projectile: Projectile, tim
 
 // Boss collision detection
 const checkBossCollision = (playerPos: Position, boss: Boss): boolean => {
-  const radius = boss.type === 'octopus' ? 40 : 30;
+  let radius = 30;
+  if (boss.type === 'octopus') radius = 40;
+  else if (boss.type === 'cat') radius = 35;
+  else if (boss.type === 'missile') radius = 45;
+  else if (boss.type === 'bat') radius = 50;
+  
   const dx = playerPos.x - boss.position.x;
   const dy = playerPos.y - boss.position.y;
   const distance = Math.sqrt(dx * dx + dy * dy);
@@ -1097,13 +1102,18 @@ const checkBossCollision = (playerPos: Position, boss: Boss): boolean => {
   return distance < radius + GAME_CONFIG.playerSize / 2;
 };
 
-// Handle boss hit
-const handleBossHit = (boss: Boss): number => {
-  boss.health -= 1;
-  boss.hitFlashTime = Date.now();
+// Handle boss hit - returns updated boss and bounce velocity
+const handleBossHit = (boss: Boss): { updatedBoss: Boss; bounceVelocity: number } => {
+  const updatedBoss = {
+    ...boss,
+    health: boss.health - 1,
+    hitFlashTime: Date.now(),
+  };
 
   // Return bounce velocity based on boss type
-  return boss.type === 'octopus' ? -8 : -7;
+  const bounceVelocity = boss.type === 'octopus' || boss.type === 'cat' ? -8 : -7;
+  
+  return { updatedBoss, bounceVelocity };
 };
 
 // Projectile collision detection
@@ -1264,7 +1274,7 @@ const UNDERWATER_THEME: BackgroundTheme = 'underwater';
 // To remove completely: Search for "HALLOWEEN" and remove all related code
 // ============================================
 // Event toggle - can be changed via settings
-let HALLOWEEN_EVENT_ACTIVE = false; // Toggle between Halloween and Normal mode
+let HALLOWEEN_EVENT_ACTIVE = true; // Toggle between Halloween and Normal mode
 const HALLOWEEN_THEME: BackgroundTheme = 'halloween';
 
 // ML-based player profile for adaptive difficulty
@@ -1682,7 +1692,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   const [showGameOverUI, setShowGameOverUI] = useState(false);
   const [soundVolume, setSoundVolume] = useState(1.0);
   const [isPaused, setIsPaused] = useState(false);
-  const [isHalloweenMode, setIsHalloweenMode] = useState(false);
+  const [isHalloweenMode, setIsHalloweenMode] = useState(true);
 
   // Sync Halloween mode with global variable
   useEffect(() => {
@@ -2100,10 +2110,14 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       if (!newState.bossState.bossEncounterActive && !newState.isGameOver) {
         const bossType = shouldTriggerBoss(
           newState.score,
-          isHalloweenMode,
+          HALLOWEEN_EVENT_ACTIVE,
           BOSS_BATTLES_ENABLED,
           newState.bossState.defeatedBosses
         );
+        
+        if (bossType) {
+          console.log(`🎯 Boss trigger! Mode: ${HALLOWEEN_EVENT_ACTIVE ? 'Halloween' : 'Normal'}, Boss: ${bossType}, Score: ${newState.score}`);
+        }
 
         if (bossType) {
           // Start boss encounter
@@ -2219,8 +2233,10 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
 
           // Check boss collision with player
           if (checkBossCollision(newState.player.position, updatedBoss)) {
-            const bounceVelocity = handleBossHit(updatedBoss);
-            newState.player.velocity = bounceVelocity;
+            const hitResult = handleBossHit(updatedBoss);
+            updatedBoss = hitResult.updatedBoss;
+            newState.bossState.currentBoss = updatedBoss; // CRITICAL: Save updated boss back to state
+            newState.player.velocity = hitResult.bounceVelocity;
             playBossHitSound();
 
             // Award points for hitting boss
@@ -2234,6 +2250,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               newState.bossState.bossTransitionPhase = 'victory';
               newState.bossState.transitionStartTime = Date.now();
               updatedBoss.isActive = false;
+              newState.bossState.currentBoss = updatedBoss; // Save defeated state
               playBossDefeatedSound();
             }
           }
@@ -3287,220 +3304,88 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
     } else if (backgroundTheme === 'retro') {
-      // ENHANCED RETRO: Animated synthwave grid, neon mountains, glitch effects, scanlines
+      // SIMPLIFIED RETRO: Synthwave grid with better performance
 
-      // Animated synthwave gradient
+      // Synthwave gradient background
       const retroGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
-      const colorShift = Math.sin(Date.now() * 0.0005) * 20;
-      retroGradient.addColorStop(0, `rgb(${255 + colorShift}, 20, ${147 + colorShift})`);
+      retroGradient.addColorStop(0, '#FF1493');
       retroGradient.addColorStop(0.3, '#9932CC');
       retroGradient.addColorStop(0.6, '#4B0082');
       retroGradient.addColorStop(1, '#000000');
       ctx.fillStyle = retroGradient;
       ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
 
-      // Animated perspective grid (moving toward viewer)
-      const gridOffset = (Date.now() * 0.1) % 30;
+      // Simple perspective grid
       ctx.strokeStyle = '#00FFFF';
-      ctx.shadowColor = '#00FFFF';
-      ctx.shadowBlur = 3;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3;
       
-      // Horizontal lines with perspective
-      for (let i = 0; i < 15; i++) {
-        const y = GAME_CONFIG.gridHeight * 0.5 + i * 30 - gridOffset;
-        const perspective = (i + 1) / 15;
-        const lineWidth = 1 + perspective * 2;
-        const alpha = 0.2 + perspective * 0.3;
-        
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = lineWidth;
+      // Horizontal lines
+      for (let i = 0; i < 10; i++) {
+        const y = GAME_CONFIG.gridHeight * 0.5 + i * 40;
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(GAME_CONFIG.gridWidth, y);
         ctx.stroke();
       }
       
-      // Vertical lines with perspective
-      for (let i = 0; i < 20; i++) {
-        const centerX = GAME_CONFIG.gridWidth / 2;
-        const xOffset = (i - 10) * 40;
-        const perspective = Math.abs(i - 10) / 10;
-        const alpha = 0.2 + (1 - perspective) * 0.3;
-        
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = 1;
+      // Vertical lines
+      for (let i = 0; i < 15; i++) {
+        const x = i * 40;
         ctx.beginPath();
-        ctx.moveTo(centerX + xOffset, GAME_CONFIG.gridHeight * 0.5);
-        
-        // Converge toward horizon
-        const topX = centerX + xOffset * 0.3;
-        ctx.lineTo(topX, GAME_CONFIG.gridHeight);
+        ctx.moveTo(x, GAME_CONFIG.gridHeight * 0.5);
+        ctx.lineTo(x, GAME_CONFIG.gridHeight);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
 
-      // Neon mountain range (layered)
-      const mountainLayers = [
-        { color: '#FF1493', alpha: 0.6, offset: 0, height: 0.4 },
-        { color: '#9932CC', alpha: 0.7, offset: 20, height: 0.5 },
-        { color: '#4B0082', alpha: 0.8, offset: 40, height: 0.6 }
-      ];
+      // Simple neon mountains
+      ctx.strokeStyle = '#FF1493';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.6;
       
-      mountainLayers.forEach(layer => {
-        ctx.strokeStyle = layer.color;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = layer.color;
-        ctx.shadowBlur = 10;
-        ctx.globalAlpha = layer.alpha;
-        
-        ctx.beginPath();
-        ctx.moveTo(0, GAME_CONFIG.gridHeight * layer.height + layer.offset);
-        
-        for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 40) {
-          const peakHeight = Math.sin(x * 0.02 + layer.offset * 0.1) * 50 + 
-                            Math.cos(x * 0.03 + layer.offset * 0.05) * 30;
-          ctx.lineTo(x, GAME_CONFIG.gridHeight * layer.height + layer.offset - peakHeight);
-        }
-        
-        ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
-        ctx.lineTo(0, GAME_CONFIG.gridHeight);
-        ctx.closePath();
-        ctx.stroke();
-        
-        // Fill with gradient
-        const mountainGradient = ctx.createLinearGradient(
-          0, 
-          GAME_CONFIG.gridHeight * layer.height, 
-          0, 
-          GAME_CONFIG.gridHeight
-        );
-        mountainGradient.addColorStop(0, layer.color + '00');
-        mountainGradient.addColorStop(1, layer.color + '40');
-        ctx.fillStyle = mountainGradient;
-        ctx.fill();
-      });
+      ctx.beginPath();
+      ctx.moveTo(0, GAME_CONFIG.gridHeight * 0.6);
+      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 50) {
+        const peakHeight = Math.sin(x * 0.02) * 40;
+        ctx.lineTo(x, GAME_CONFIG.gridHeight * 0.6 - peakHeight);
+      }
+      ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
+      ctx.lineTo(0, GAME_CONFIG.gridHeight);
+      ctx.closePath();
+      ctx.stroke();
       ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
 
-      // Animated neon sun with rings
+      // Simple neon sun
       const sunX = GAME_CONFIG.gridWidth / 2;
-      const sunY = GAME_CONFIG.gridHeight * 0.35;
-      const sunPulse = Math.sin(Date.now() * 0.003) * 3;
+      const sunY = GAME_CONFIG.gridHeight * 0.3;
       
-      // Sun rings (expanding)
-      for (let i = 0; i < 5; i++) {
-        const ringPhase = (Date.now() * 0.001 + i * 0.5) % 2;
-        const ringRadius = 25 + ringPhase * 30;
-        const ringAlpha = 1 - ringPhase / 2;
-        
-        ctx.strokeStyle = `rgba(255, 255, 0, ${ringAlpha * 0.6})`;
-        ctx.lineWidth = 3;
-        ctx.shadowColor = '#FFFF00';
-        ctx.shadowBlur = 15;
-        ctx.beginPath();
-        ctx.arc(sunX, sunY, ringRadius, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-      
-      // Sun core with gradient
-      const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 25 + sunPulse);
-      sunGradient.addColorStop(0, '#FFFFFF');
-      sunGradient.addColorStop(0.3, '#FFFF00');
-      sunGradient.addColorStop(0.7, '#FF00FF');
+      // Sun core
+      const sunGradient = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 30);
+      sunGradient.addColorStop(0, '#FFFF00');
+      sunGradient.addColorStop(0.5, '#FF00FF');
       sunGradient.addColorStop(1, '#FF1493');
       
       ctx.fillStyle = sunGradient;
-      ctx.shadowColor = '#FFFF00';
-      ctx.shadowBlur = 30;
       ctx.beginPath();
-      ctx.arc(sunX, sunY, 25 + sunPulse, 0, Math.PI * 2);
+      ctx.arc(sunX, sunY, 30, 0, Math.PI * 2);
       ctx.fill();
       
-      // Sun horizontal lines
+      // Sun lines
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 2;
-      ctx.shadowBlur = 0;
       for (let i = -3; i <= 3; i++) {
         ctx.beginPath();
-        ctx.moveTo(sunX - 25, sunY + i * 7);
-        ctx.lineTo(sunX + 25, sunY + i * 7);
+        ctx.moveTo(sunX - 30, sunY + i * 8);
+        ctx.lineTo(sunX + 30, sunY + i * 8);
         ctx.stroke();
       }
 
-      // Floating geometric shapes (triangles, squares)
-      const shapes = [
-        { x: 100, y: 100, type: 'triangle', size: 15, speed: 0.02 },
-        { x: 300, y: 150, type: 'square', size: 12, speed: 0.015 },
-        { x: 500, y: 120, type: 'triangle', size: 18, speed: 0.025 },
-        { x: 200, y: 200, type: 'square', size: 10, speed: 0.018 }
-      ];
-      
-      shapes.forEach((shape, i) => {
-        const shapeX = shape.x + Math.sin(Date.now() * shape.speed + i) * 30;
-        const shapeY = shape.y + Math.cos(Date.now() * shape.speed * 0.7 + i) * 20;
-        const rotation = Date.now() * 0.001 + i;
-        const glowIntensity = Math.sin(Date.now() * 0.003 + i) * 0.3 + 0.5;
-        
-        ctx.save();
-        ctx.translate(shapeX, shapeY);
-        ctx.rotate(rotation);
-        
-        ctx.strokeStyle = '#00FFFF';
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#00FFFF';
-        ctx.shadowBlur = 10 * glowIntensity;
-        ctx.globalAlpha = 0.6;
-        
-        if (shape.type === 'triangle') {
-          ctx.beginPath();
-          ctx.moveTo(0, -shape.size);
-          ctx.lineTo(shape.size, shape.size);
-          ctx.lineTo(-shape.size, shape.size);
-          ctx.closePath();
-          ctx.stroke();
-        } else {
-          ctx.strokeRect(-shape.size / 2, -shape.size / 2, shape.size, shape.size);
-        }
-        
-        ctx.restore();
-      });
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-
-      // Scanlines effect
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-      for (let y = 0; y < GAME_CONFIG.gridHeight; y += 4) {
+      // Scanlines effect (lighter)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      for (let y = 0; y < GAME_CONFIG.gridHeight; y += 6) {
         ctx.fillRect(0, y, GAME_CONFIG.gridWidth, 2);
       }
-
-      // Random glitch effect (occasional)
-      if (Math.random() < 0.02) {
-        const glitchY = Math.random() * GAME_CONFIG.gridHeight;
-        const glitchHeight = 20 + Math.random() * 30;
-        const glitchOffset = (Math.random() - 0.5) * 20;
-        
-        ctx.globalAlpha = 0.7;
-        ctx.fillStyle = '#FF00FF';
-        ctx.fillRect(glitchOffset, glitchY, GAME_CONFIG.gridWidth, 2);
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillRect(-glitchOffset, glitchY + 2, GAME_CONFIG.gridWidth, 2);
-        ctx.globalAlpha = 1;
-      }
-
-      // Neon text "SYNTHWAVE" at top
-      ctx.font = 'bold 20px Arial';
-      ctx.strokeStyle = '#FF1493';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = '#FF1493';
-      ctx.shadowBlur = 15;
-      ctx.globalAlpha = 0.3;
-      ctx.strokeText('SYNTHWAVE', 20, 30);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.shadowBlur = 10;
-      ctx.fillText('SYNTHWAVE', 20, 30);
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
     } else if (backgroundTheme === 'desert') {
       // ENHANCED DESERT: Animated heat waves, moving sand, tumbleweeds, vultures, mirages
 

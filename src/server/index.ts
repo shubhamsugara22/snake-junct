@@ -2,6 +2,7 @@ import express from 'express';
 import { InitResponse, IncrementResponse, DecrementResponse, GameScoreResponse, SaveScoreRequest } from '../shared/types/api';
 import { redis, reddit, createServer, context, getServerPort } from '@devvit/web/server';
 import { createPost } from './core/post';
+import { handlePowerUpPurchase, getUserInventory, usePowerUp } from './payments';
 
 const app = express();
 
@@ -238,6 +239,39 @@ router.get('/api/leaderboard', async (_req, res): Promise<void> => {
   }
 });
 
+router.post('/api/purchase-powerup', async (req, res): Promise<void> => {
+  const { postId } = context;
+  if (!postId) {
+    res.status(400).json({
+      status: 'error',
+      message: 'postId is required',
+    });
+    return;
+  }
+
+  try {
+    const { powerUpId, goldAmount } = req.body;
+    
+    if (!powerUpId || typeof goldAmount !== 'number') {
+      res.status(400).json({
+        success: false,
+        error: 'Invalid power-up ID or gold amount',
+      });
+      return;
+    }
+
+    const result = await handlePowerUpPurchase(powerUpId, goldAmount);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Purchase endpoint error:', error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Purchase failed',
+    });
+  }
+});
+
 router.post('/internal/on-app-install', async (_req, res): Promise<void> => {
   try {
     const post = await createPost();
@@ -267,6 +301,34 @@ router.post('/internal/menu/post-create', async (_req, res): Promise<void> => {
     res.status(400).json({
       status: 'error',
       message: 'Failed to create post',
+    });
+  }
+});
+
+router.post('/internal/payment-fulfilled', async (req, res): Promise<void> => {
+  try {
+    const { orderId } = req.body;
+    
+    if (!orderId) {
+      res.status(400).json({
+        status: 'error',
+        message: 'Order ID is required',
+      });
+      return;
+    }
+
+    console.log(`Fulfilling order: ${orderId}`);
+    // Payment fulfillment is handled automatically by Devvit
+    // This endpoint is for webhook notifications
+    res.json({
+      success: true,
+      message: 'Order fulfillment acknowledged',
+    });
+  } catch (error) {
+    console.error('Fulfillment error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Fulfillment failed',
     });
   }
 });

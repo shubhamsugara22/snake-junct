@@ -1259,7 +1259,7 @@ const GAME_CONFIG: GameConfig = {
 };
 
 type BackgroundTheme = 'beach' | 'night' | 'retro' | 'desert' | 'halloween' | 'underwater';
-type CharacterSkin = 'orange' | 'blue' | 'pink' | 'green' | 'purple' | 'witch' | 'ghost';
+type CharacterSkin = 'orange' | 'blue' | 'pink' | 'green' | 'purple' | 'witch' | 'ghost' | 'red';
 
 const BACKGROUND_THEMES: BackgroundTheme[] = ['beach', 'night', 'retro', 'desert'];
 
@@ -1352,6 +1352,7 @@ const SKIN_COLORS: Record<CharacterSkin, { primary: string; secondary: string }>
   pink: { primary: '#FFB6C1', secondary: '#FF69B4' },
   green: { primary: '#90EE90', secondary: '#32CD32' },
   purple: { primary: '#DDA0DD', secondary: '#9370DB' },
+  red: { primary: '#FF6B6B', secondary: '#DC143C' }, // Bright red skin
   // HALLOWEEN EVENT - Special skins
   witch: { primary: '#8B4513', secondary: '#654321' }, // Light brown witch hat for visibility
   ghost: { primary: '#FFFFFF', secondary: '#E6E6FA' }, // White ghost

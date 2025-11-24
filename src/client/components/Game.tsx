@@ -3949,21 +3949,72 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       }
     });
 
-    // Draw super cute chibi character
+    // Motion trail effect for fast movement
     const playerX = gameState.player.position.x;
     const playerY = gameState.player.position.y;
     const playerRadius = GAME_CONFIG.playerSize / 2;
     const skinColors = SKIN_COLORS[selectedSkin];
+    
+    if (Math.abs(gameState.player.velocity) > 3) {
+      const trailCount = 3;
+      for (let i = 0; i < trailCount; i++) {
+        const trailAlpha = (1 - i / trailCount) * 0.3;
+        const trailOffset = i * 3;
+        ctx.globalAlpha = trailAlpha;
+        ctx.fillStyle = skinColors.primary;
+        ctx.beginPath();
+        ctx.arc(playerX, playerY - trailOffset * Math.sign(gameState.player.velocity), playerRadius * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
 
-    // Shield effect
+    // Draw super cute chibi character with enhanced animations
+
+    // Animation: Squash and stretch based on velocity
+    const velocityFactor = Math.abs(gameState.player.velocity) / 10;
+    const squashAmount = Math.min(velocityFactor * 0.15, 0.3);
+    const scaleY = 1 - squashAmount;
+    const scaleX = 1 + squashAmount * 0.5;
+
+    // Animation: Subtle bounce effect
+    const bounceOffset = Math.sin(Date.now() * 0.01) * 0.5;
+
+    // Save context for transformations
+    ctx.save();
+    ctx.translate(playerX, playerY + bounceOffset);
+    ctx.scale(scaleX, scaleY);
+    ctx.translate(-playerX, -playerY - bounceOffset);
+
+    // Character shadow for depth
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.beginPath();
+    ctx.ellipse(playerX, playerY + playerRadius + 2, playerRadius * 0.8, playerRadius * 0.3, 0, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Shield effect with pulsing animation
     if (gameState.shieldActive) {
+      const shieldPulse = 1 + Math.sin(Date.now() * 0.008) * 0.1;
       ctx.strokeStyle = '#00FFFF';
       ctx.lineWidth = 3;
       ctx.shadowColor = '#00FFFF';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 15;
       ctx.beginPath();
-      ctx.arc(playerX, playerY, playerRadius + 5, 0, 2 * Math.PI);
+      ctx.arc(playerX, playerY, (playerRadius + 5) * shieldPulse, 0, 2 * Math.PI);
       ctx.stroke();
+      
+      // Shield sparkles
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2 + Date.now() * 0.003;
+        const sparkleX = playerX + Math.cos(angle) * (playerRadius + 7);
+        const sparkleY = playerY + Math.sin(angle) * (playerRadius + 7);
+        ctx.fillStyle = '#00FFFF';
+        ctx.globalAlpha = 0.6 + Math.sin(Date.now() * 0.01 + i) * 0.4;
+        ctx.beginPath();
+        ctx.arc(sparkleX, sparkleY, 2, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
       ctx.shadowBlur = 0;
     }
 
@@ -3992,89 +4043,173 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.shadowBlur = 0;
     }
 
-    // Body with gradient using selected skin
+    // Body with enhanced gradient and outline
     const gradient = ctx.createRadialGradient(
-      playerX - 2,
-      playerY - 2,
+      playerX - 3,
+      playerY - 3,
       0,
       playerX,
       playerY,
       playerRadius
     );
     gradient.addColorStop(0, skinColors.primary);
+    gradient.addColorStop(0.7, skinColors.secondary);
     gradient.addColorStop(1, skinColors.secondary);
+    
+    // Outer glow for better visibility
+    ctx.shadowColor = skinColors.primary;
+    ctx.shadowBlur = 8;
     ctx.fillStyle = gradient;
-    ctx.strokeStyle = skinColors.secondary;
-    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(playerX, playerY, playerRadius, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.shadowBlur = 0;
+    
+    // Strong outline for clarity
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, playerRadius, 0, 2 * Math.PI);
+    ctx.stroke();
+    
+    // Inner highlight for depth
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(playerX - 2, playerY - 3, playerRadius * 0.6, 0.5, 2.5);
     ctx.stroke();
 
-    // Cute blush cheeks
+    // Animated blush cheeks
+    const blushIntensity = 0.5 + Math.sin(Date.now() * 0.005) * 0.1;
     ctx.fillStyle = '#FF69B4';
-    ctx.globalAlpha = 0.6;
+    ctx.globalAlpha = blushIntensity;
     ctx.beginPath();
-    ctx.arc(playerX - 6, playerY + 1, 2, 0, 2 * Math.PI);
+    ctx.arc(playerX - 6, playerY + 1, 2.5, 0, 2 * Math.PI);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(playerX + 6, playerY + 1, 2, 0, 2 * Math.PI);
+    ctx.arc(playerX + 6, playerY + 1, 2.5, 0, 2 * Math.PI);
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Big sparkly eyes
+    // Big sparkly eyes with outlines
     ctx.fillStyle = '#FFFFFF';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(playerX - 3, playerY - 2, 3, 0, 2 * Math.PI);
+    ctx.arc(playerX - 3, playerY - 2, 3.5, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.stroke();
     ctx.beginPath();
-    ctx.arc(playerX + 3, playerY - 2, 3, 0, 2 * Math.PI);
+    ctx.arc(playerX + 3, playerY - 2, 3.5, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.stroke();
 
-    // Eye pupils
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.arc(playerX - 3, playerY - 2, 2, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(playerX + 3, playerY - 2, 2, 0, 2 * Math.PI);
-    ctx.fill();
+    // Animated eye pupils (blink effect)
+    const blinkCycle = Date.now() % 3000;
+    const isBlinking = blinkCycle > 2800;
+    
+    if (!isBlinking) {
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(playerX - 3, playerY - 2, 2, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + 3, playerY - 2, 2, 0, 2 * Math.PI);
+      ctx.fill();
 
-    // Eye sparkles
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(playerX - 2, playerY - 3, 0.8, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(playerX + 4, playerY - 3, 0.8, 0, 2 * Math.PI);
-    ctx.fill();
+      // Eye sparkles
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(playerX - 2, playerY - 3, 1, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(playerX + 4, playerY - 3, 1, 0, 2 * Math.PI);
+      ctx.fill();
+    } else {
+      // Blink - draw closed eyes
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(playerX - 5, playerY - 2);
+      ctx.lineTo(playerX - 1, playerY - 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(playerX + 1, playerY - 2);
+      ctx.lineTo(playerX + 5, playerY - 2);
+      ctx.stroke();
+    }
 
-    // Cute smile
-    ctx.strokeStyle = '#FF1493';
+    // Cute smile with better visibility
+    ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(playerX, playerY + 3, 4, 0.2, Math.PI - 0.2);
     ctx.stroke();
-
-    // Tiny arms
-    ctx.strokeStyle = '#FF6347';
-    ctx.lineWidth = 3;
-    ctx.lineCap = 'round';
+    
+    // Inner smile highlight
+    ctx.strokeStyle = '#FF1493';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(playerX - playerRadius + 1, playerY);
-    ctx.lineTo(playerX - playerRadius - 3, playerY - 3);
-    ctx.moveTo(playerX + playerRadius - 1, playerY);
-    ctx.lineTo(playerX + playerRadius + 3, playerY - 3);
+    ctx.arc(playerX, playerY + 3, 4, 0.2, Math.PI - 0.2);
     ctx.stroke();
 
-    // Tiny hands
+    // Animated arms with wave motion
+    const armWave = Math.sin(Date.now() * 0.008) * 2;
+    ctx.strokeStyle = skinColors.secondary;
+    ctx.lineWidth = 3.5;
+    ctx.lineCap = 'round';
+    
+    // Left arm with outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(playerX - playerRadius + 1, playerY);
+    ctx.lineTo(playerX - playerRadius - 3, playerY - 3 + armWave);
+    ctx.stroke();
+    
+    ctx.strokeStyle = skinColors.secondary;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(playerX - playerRadius + 1, playerY);
+    ctx.lineTo(playerX - playerRadius - 3, playerY - 3 + armWave);
+    ctx.stroke();
+    
+    // Right arm with outline
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4.5;
+    ctx.beginPath();
+    ctx.moveTo(playerX + playerRadius - 1, playerY);
+    ctx.lineTo(playerX + playerRadius + 3, playerY - 3 - armWave);
+    ctx.stroke();
+    
+    ctx.strokeStyle = skinColors.secondary;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(playerX + playerRadius - 1, playerY);
+    ctx.lineTo(playerX + playerRadius + 3, playerY - 3 - armWave);
+    ctx.stroke();
+
+    // Tiny hands with outlines
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(playerX - playerRadius - 3, playerY - 3 + armWave, 2, 0, 2 * Math.PI);
+    ctx.fill();
     ctx.fillStyle = skinColors.primary;
     ctx.beginPath();
-    ctx.arc(playerX - playerRadius - 3, playerY - 3, 1.5, 0, 2 * Math.PI);
+    ctx.arc(playerX - playerRadius - 3, playerY - 3 + armWave, 1.5, 0, 2 * Math.PI);
     ctx.fill();
+    
+    ctx.fillStyle = '#000000';
     ctx.beginPath();
-    ctx.arc(playerX + playerRadius + 3, playerY - 3, 1.5, 0, 2 * Math.PI);
+    ctx.arc(playerX + playerRadius + 3, playerY - 3 - armWave, 2, 0, 2 * Math.PI);
     ctx.fill();
+    ctx.fillStyle = skinColors.primary;
+    ctx.beginPath();
+    ctx.arc(playerX + playerRadius + 3, playerY - 3 - armWave, 1.5, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    // Restore context after transformations
+    ctx.restore();
 
     // HALLOWEEN EVENT - Special skin rendering
     if (selectedSkin === 'witch') {

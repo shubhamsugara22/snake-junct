@@ -1693,7 +1693,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
   const [showGameOverUI, setShowGameOverUI] = useState(false);
   const [soundVolume, setSoundVolume] = useState(1.0);
   const [isPaused, setIsPaused] = useState(false);
-  const [isHalloweenMode, setIsHalloweenMode] = useState(true);
+  const [isHalloweenMode, setIsHalloweenMode] = useState(false);
 
   // Sync Halloween mode with global variable
   useEffect(() => {
@@ -5235,8 +5235,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         // Render boss
         if (boss.type === 'octopus') {
           renderOctopusBoss(ctx, boss, Date.now());
-        } else {
+        } else if (boss.type === 'bat') {
           renderBatBoss(ctx, boss, Date.now());
+        } else if (boss.type === 'cat') {
+          renderCatBoss(ctx, boss, Date.now());
+        } else if (boss.type === 'missile') {
+          renderMissileBoss(ctx, boss, Date.now());
         }
 
         // Render boss health bar

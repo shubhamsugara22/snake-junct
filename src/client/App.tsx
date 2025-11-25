@@ -8,6 +8,7 @@ import { Leaderboard } from './components/Leaderboard';
 import { GameInstructions } from './components/GameInstructions';
 import { GameIntro } from './components/GameIntro';
 import { PowerUpsPreview } from './components/PowerUpsPreview';
+import { LoadingScreen } from './components/LoadingScreen';
 import { GameLevel } from '../shared/types/game';
 
 export const App = () => {
@@ -17,6 +18,7 @@ export const App = () => {
   const [showInstructions, setShowInstructions] = useState(false);
   const [showPowerUps, setShowPowerUps] = useState(false);
   const [showIntro, setShowIntro] = useState(false); // Disabled intro for testing
+  const [showLoadingScreen, setShowLoadingScreen] = useState(true);
 
   useEffect(() => {
     getHighScore();
@@ -26,6 +28,16 @@ export const App = () => {
     saveScore(score, level);
   };
 
+  const handleLoadComplete = () => {
+    setShowLoadingScreen(false);
+  };
+
+  // Show loading screen first
+  if (showLoadingScreen) {
+    return <LoadingScreen onLoadComplete={handleLoadComplete} />;
+  }
+
+  // Then show data loading
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">

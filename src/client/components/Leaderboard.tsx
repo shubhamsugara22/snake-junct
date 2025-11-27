@@ -181,51 +181,66 @@ export const Leaderboard = ({ isVisible, onClose }: LeaderboardProps) => {
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
       <div className="bg-gradient-to-br from-purple-50 via-white to-blue-50 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-slide-up">
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 p-6 text-white">
+        {/* Header with enhanced graphics */}
+        <div className="relative bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 p-6 text-white overflow-hidden">
+          {/* Animated background pattern */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 left-0 w-32 h-32 bg-white rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+          </div>
           <div className="absolute inset-0 animate-shimmer"></div>
+          
           <div className="relative flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <span className="text-4xl animate-trophy-bounce">🏆</span>
+              <div className="relative">
+                <span className="text-5xl animate-trophy-bounce drop-shadow-2xl">🏆</span>
+                <div className="absolute inset-0 bg-yellow-400 rounded-full blur-xl opacity-50 animate-pulse"></div>
+              </div>
               <div>
-                <h2 className="text-2xl font-black tracking-tight">Leaderboard</h2>
-                <p className="text-sm text-white/80">Top Players & Champions</p>
+                <h2 className="text-3xl font-black tracking-tight drop-shadow-lg">Leaderboard</h2>
+                <p className="text-sm text-white/90 font-semibold">🎮 Top Players & Champions</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-10 h-10 flex items-center justify-center text-3xl font-light transition-all duration-200 hover:rotate-90"
+              className="text-white/80 hover:text-white hover:bg-white/20 rounded-full w-12 h-12 flex items-center justify-center text-4xl font-light transition-all duration-200 hover:rotate-90 hover:scale-110"
             >
               ×
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 p-4 bg-white/50 backdrop-blur-sm border-b border-gray-200">
+        {/* Enhanced Tabs */}
+        <div className="flex gap-3 p-4 bg-gradient-to-r from-purple-50 via-pink-50 to-blue-50 border-b-2 border-purple-200">
           <button
             onClick={() => setActiveTab('alltime')}
-            className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
+            className={`relative flex-1 py-3 px-4 rounded-xl font-bold transition-all duration-300 overflow-hidden ${
               activeTab === 'alltime'
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105'
-                : 'bg-white text-gray-600 hover:bg-gray-100 hover:scale-102'
+                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-xl scale-105'
+                : 'bg-white text-gray-600 hover:bg-gradient-to-r hover:from-purple-100 hover:to-blue-100 hover:scale-102 shadow-md'
             }`}
           >
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-xl">👑</span>
+            {activeTab === 'alltime' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            )}
+            <div className="relative flex items-center justify-center gap-2">
+              <span className="text-2xl">👑</span>
               <span>All-Time High</span>
             </div>
           </button>
           <button
             onClick={() => setActiveTab('weekly')}
-            className={`flex-1 py-3 px-4 rounded-lg font-bold transition-all duration-300 ${
+            className={`relative flex-1 py-3 px-4 rounded-xl font-bold transition-all duration-300 overflow-hidden ${
               activeTab === 'weekly'
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105'
-                : 'bg-white text-gray-600 hover:bg-gray-100 hover:scale-102'
+                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-xl scale-105'
+                : 'bg-white text-gray-600 hover:bg-gradient-to-r hover:from-purple-100 hover:to-blue-100 hover:scale-102 shadow-md'
             }`}
           >
-            <div className="flex items-center justify-center gap-2">
-              <span className="text-xl">⚡</span>
+            {activeTab === 'weekly' && (
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+            )}
+            <div className="relative flex items-center justify-center gap-2">
+              <span className="text-2xl">⚡</span>
               <span>Weekly Top</span>
             </div>
           </button>
@@ -235,14 +250,29 @@ export const Leaderboard = ({ isVisible, onClose }: LeaderboardProps) => {
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {loading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin text-6xl">🎮</div>
-              <p className="mt-4 text-gray-600 font-semibold">Loading champions...</p>
+              <div className="relative inline-block">
+                <div className="animate-spin text-7xl">🎮</div>
+                <div className="absolute inset-0 bg-purple-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+              </div>
+              <p className="mt-6 text-gray-700 font-bold text-lg">Loading champions...</p>
+              <div className="flex justify-center gap-2 mt-4">
+                {[0, 1, 2].map((i) => (
+                  <div
+                    key={i}
+                    className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
+                    style={{ animationDelay: `${i * 0.15}s` }}
+                  />
+                ))}
+              </div>
             </div>
           ) : currentEntries.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🎯</div>
-              <p className="text-xl font-bold text-gray-700 mb-2">No scores yet!</p>
-              <p className="text-gray-500">Be the first to claim the throne!</p>
+              <div className="relative inline-block mb-4">
+                <div className="text-8xl animate-bounce">🎯</div>
+                <div className="absolute inset-0 bg-blue-400 rounded-full blur-2xl opacity-30 animate-pulse"></div>
+              </div>
+              <p className="text-2xl font-black text-gray-800 mb-2">No scores yet!</p>
+              <p className="text-gray-600 text-lg">Be the first to claim the throne! 👑</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -305,25 +335,33 @@ export const Leaderboard = ({ isVisible, onClose }: LeaderboardProps) => {
           )}
         </div>
 
-        {/* Footer Stats */}
+        {/* Enhanced Footer Stats */}
         {!loading && currentEntries.length > 0 && (
-          <div className="bg-gradient-to-r from-purple-100 via-pink-100 to-blue-100 p-4 border-t border-gray-200">
-            <div className="flex justify-around text-center">
-              <div>
-                <div className="text-2xl font-black text-purple-600">{currentEntries.length}</div>
-                <div className="text-xs text-gray-600 font-semibold">Total Players</div>
+          <div className="relative bg-gradient-to-r from-purple-100 via-pink-100 to-blue-100 p-5 border-t-2 border-purple-200 overflow-hidden">
+            {/* Background decoration */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 left-0 w-20 h-20 bg-purple-500 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 right-0 w-24 h-24 bg-blue-500 rounded-full blur-2xl"></div>
+            </div>
+            
+            <div className="relative flex justify-around text-center gap-4">
+              <div className="flex-1 bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-lg hover:scale-105 transition-transform">
+                <div className="text-3xl font-black bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+                  {currentEntries.length}
+                </div>
+                <div className="text-xs text-gray-700 font-bold mt-1">👥 Total Players</div>
               </div>
-              <div>
-                <div className="text-2xl font-black text-pink-600">
+              <div className="flex-1 bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-lg hover:scale-105 transition-transform">
+                <div className="text-3xl font-black bg-gradient-to-r from-pink-600 to-pink-800 bg-clip-text text-transparent">
                   {currentEntries[0]?.score.toLocaleString() || 0}
                 </div>
-                <div className="text-xs text-gray-600 font-semibold">Top Score</div>
+                <div className="text-xs text-gray-700 font-bold mt-1">🏆 Top Score</div>
               </div>
-              <div>
-                <div className="text-2xl font-black text-blue-600">
+              <div className="flex-1 bg-white/60 backdrop-blur-sm rounded-xl p-3 shadow-lg hover:scale-105 transition-transform">
+                <div className="text-3xl font-black bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
                   {Math.round(currentEntries.reduce((sum, e) => sum + e.score, 0) / currentEntries.length) || 0}
                 </div>
-                <div className="text-xs text-gray-600 font-semibold">Average Score</div>
+                <div className="text-xs text-gray-700 font-bold mt-1">📊 Average</div>
               </div>
             </div>
           </div>

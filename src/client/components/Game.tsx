@@ -847,26 +847,23 @@ const renderMissileBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
   ctx.setLineDash([]);
 };
 
-// Missile Boss update function - AGGRESSIVELY CHASES PLAYER!
+// Missile Boss update function - Fast horizontal sweeps with independent vertical
 const updateMissileBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
-  // SCARY MISSILE - Fast horizontal sweeps with aggressive tracking
   const t = time * 0.001;
   
-  // FAST horizontal sweeping pattern - zigzag across screen
+  // VERY FAST horizontal sweeping - keeps moving left-right aggressively
   const patrolCenterX = GAME_CONFIG.gridWidth / 2;
-  const patrolRange = 250; // Wide sweeps
-  const sweepSpeed = 1.2; // Fast sweeping
+  const patrolRange = 260;
+  const sweepSpeed = 1.4; // Very fast
   const newX = patrolCenterX + Math.sin(t * sweepSpeed) * patrolRange;
   
-  // Aggressive vertical tracking - homes in on player
-  const currentY = boss.position.y;
-  const targetY = playerPos.y;
-  const verticalSpeed = 3.5; // Fast vertical tracking
-  const dy = targetY - currentY;
-  const newY = currentY + Math.sign(dy) * Math.min(Math.abs(dy), verticalSpeed);
+  // INDEPENDENT vertical movement - figure-eight pattern (NOT following player)
+  const verticalCenter = GAME_CONFIG.gridHeight / 2;
+  const verticalRange = 100;
+  const newY = verticalCenter + Math.sin(t * 1.8) * verticalRange;
   
   // Add erratic wobble for scariness
-  const wobble = Math.sin(t * 3) * 10;
+  const wobble = Math.sin(t * 4) * 12;
   
   // Keep within bounds
   const boundedX = Math.max(80, Math.min(GAME_CONFIG.gridWidth - 80, newX + wobble));

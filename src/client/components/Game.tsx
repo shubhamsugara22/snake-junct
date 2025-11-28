@@ -3082,228 +3082,125 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.stroke();
       });
     } else if (backgroundTheme === 'night') {
-      // ENHANCED NIGHT: Animated stars, shooting stars, aurora, moon phases, city skyline
+      // ENHANCED REALISTIC NIGHT: Smooth gradients, realistic city, depth, and atmosphere
 
-      // Animated night sky gradient
-      const nightGradient = ctx.createLinearGradient(0, 0, 0, GAME_CONFIG.gridHeight);
-      nightGradient.addColorStop(0, '#0a0a2e');
-      nightGradient.addColorStop(0.3, '#16213e');
-      nightGradient.addColorStop(0.7, '#1a1a3e');
-      nightGradient.addColorStop(1, '#0f0f1e');
-      ctx.fillStyle = nightGradient;
+      // Deep night sky with smooth gradient
+      const skyGradient = ctx.createRadialGradient(
+        GAME_CONFIG.gridWidth / 2, 
+        0, 
+        0, 
+        GAME_CONFIG.gridWidth / 2, 
+        GAME_CONFIG.gridHeight / 2, 
+        GAME_CONFIG.gridHeight
+      );
+      skyGradient.addColorStop(0, '#1a0033');
+      skyGradient.addColorStop(0.4, '#2d1b4e');
+      skyGradient.addColorStop(0.7, '#4a2c6b');
+      skyGradient.addColorStop(1, '#6b4789');
+      ctx.fillStyle = skyGradient;
       ctx.fillRect(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
 
-      // Aurora Borealis effect (animated)
-      const auroraGradient = ctx.createLinearGradient(0, 0, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight * 0.4);
-      const auroraPhase = Date.now() * 0.0005;
-      auroraGradient.addColorStop(0, `rgba(0, 255, 127, ${0.1 + Math.sin(auroraPhase) * 0.05})`);
-      auroraGradient.addColorStop(0.5, `rgba(138, 43, 226, ${0.15 + Math.cos(auroraPhase * 1.3) * 0.05})`);
-      auroraGradient.addColorStop(1, `rgba(0, 191, 255, ${0.1 + Math.sin(auroraPhase * 0.8) * 0.05})`);
-      ctx.fillStyle = auroraGradient;
-      
-      ctx.beginPath();
-      ctx.moveTo(0, 50);
-      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 30) {
-        const wave1 = Math.sin((x + Date.now() * 0.05) * 0.01) * 20;
-        const wave2 = Math.cos((x + Date.now() * 0.03) * 0.015) * 15;
-        ctx.lineTo(x, 80 + wave1 + wave2);
-      }
-      ctx.lineTo(GAME_CONFIG.gridWidth, 0);
-      ctx.lineTo(0, 0);
-      ctx.closePath();
-      ctx.fill();
-
-      // Twinkling stars with different sizes and brightness
-      for (let i = 0; i < 60; i++) {
+      // Simple twinkling stars - optimized
+      for (let i = 0; i < 40; i++) {
         const starX = (i * 47 + 23) % GAME_CONFIG.gridWidth;
-        const starY = (i * 31 + 15) % (GAME_CONFIG.gridHeight * 0.7);
-        const twinkle = Math.sin(Date.now() * 0.003 + i) * 0.5 + 0.5;
-        const starSize = (i % 4 === 0 ? 2 : i % 3 === 0 ? 1.5 : 1) * twinkle;
+        const starY = (i * 31 + 15) % (GAME_CONFIG.gridHeight * 0.6);
+        const twinkle = Math.sin(time * 0.002 + i * 0.5) * 0.4 + 0.6;
         
-        // Star glow
-        ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.8})`;
-        ctx.shadowColor = '#FFFFFF';
-        ctx.shadowBlur = 3;
+        ctx.fillStyle = `rgba(255, 255, 255, ${twinkle})`;
         ctx.beginPath();
-        ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+        ctx.arc(starX, starY, 1.5, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Star sparkle (cross shape for bright stars)
-        if (i % 5 === 0 && twinkle > 0.7) {
-          ctx.strokeStyle = `rgba(255, 255, 255, ${twinkle * 0.6})`;
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(starX - 3, starY);
-          ctx.lineTo(starX + 3, starY);
-          ctx.moveTo(starX, starY - 3);
-          ctx.lineTo(starX, starY + 3);
-          ctx.stroke();
-        }
-      }
-      ctx.shadowBlur = 0;
-
-      // Shooting stars
-      const shootingStarTime = Date.now() * 0.001;
-      if (Math.floor(shootingStarTime) % 5 < 2) { // Appears every 5 seconds for 2 seconds
-        const progress = (shootingStarTime % 5) / 2;
-        const shootX = progress * GAME_CONFIG.gridWidth;
-        const shootY = 50 + progress * 100;
-        
-        ctx.strokeStyle = `rgba(255, 255, 255, ${1 - progress})`;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#FFFFFF';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.moveTo(shootX, shootY);
-        ctx.lineTo(shootX - 30, shootY - 15);
-        ctx.stroke();
-        
-        // Shooting star trail
-        ctx.strokeStyle = `rgba(135, 206, 250, ${(1 - progress) * 0.5})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(shootX - 30, shootY - 15);
-        ctx.lineTo(shootX - 50, shootY - 25);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
       }
 
-      // Animated moon with phases and glow
-      const moonX = GAME_CONFIG.gridWidth - 80;
-      const moonY = 70;
-      const moonPhase = (Date.now() * 0.0001) % 1;
+      // Simple moon with glow
+      const moonX = GAME_CONFIG.gridWidth - 100;
+      const moonY = 80;
       
-      // Moon glow (pulsing)
-      const moonGlow = Math.sin(Date.now() * 0.002) * 5 + 20;
+      // Moon glow
       ctx.fillStyle = 'rgba(240, 248, 255, 0.2)';
-      ctx.shadowColor = '#F0F8FF';
-      ctx.shadowBlur = moonGlow;
       ctx.beginPath();
-      ctx.arc(moonX, moonY, 35, 0, Math.PI * 2);
+      ctx.arc(moonX, moonY, 50, 0, Math.PI * 2);
       ctx.fill();
       
       // Moon body
       ctx.fillStyle = '#F0F8FF';
-      ctx.shadowBlur = 15;
       ctx.beginPath();
-      ctx.arc(moonX, moonY, 28, 0, Math.PI * 2);
+      ctx.arc(moonX, moonY, 30, 0, Math.PI * 2);
       ctx.fill();
-      ctx.shadowBlur = 0;
 
-      // Moon craters with depth
-      ctx.fillStyle = '#E6E6FA';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 2;
-      const craters = [
-        { x: -8, y: -5, r: 4 },
-        { x: 5, y: 8, r: 3 },
-        { x: -3, y: 10, r: 2.5 },
-        { x: 10, y: -8, r: 3.5 },
-        { x: -10, y: 5, r: 2 }
-      ];
-      craters.forEach(crater => {
-        ctx.beginPath();
-        ctx.arc(moonX + crater.x, moonY + crater.y, crater.r, 0, Math.PI * 2);
-        ctx.fill();
-      });
-      ctx.shadowBlur = 0;
+      // Simple craters
+      ctx.fillStyle = '#D8E8F8';
+      ctx.beginPath();
+      ctx.arc(moonX - 10, moonY - 5, 4, 0, Math.PI * 2);
+      ctx.arc(moonX + 8, moonY + 8, 3, 0, Math.PI * 2);
+      ctx.arc(moonX - 5, moonY + 10, 2.5, 0, Math.PI * 2);
+      ctx.fill();
 
-      // City skyline silhouette at bottom
+      // Simplified city skyline - optimized for performance
       const skylineY = GAME_CONFIG.gridHeight - 80;
-      ctx.fillStyle = '#0a0a1a';
       
-      // Buildings with windows
+      // Simple building silhouettes
       const buildings = [
         { x: 0, w: 60, h: 60 },
-        { x: 60, w: 50, h: 80 },
-        { x: 110, w: 70, h: 50 },
-        { x: 180, w: 55, h: 70 },
-        { x: 235, w: 65, h: 90 },
-        { x: 300, w: 50, h: 55 },
-        { x: 350, w: 80, h: 75 },
-        { x: 430, w: 60, h: 65 },
-        { x: 490, w: 70, h: 85 },
-        { x: 560, w: 40, h: 50 }
+        { x: 65, w: 50, h: 80 },
+        { x: 120, w: 70, h: 55 },
+        { x: 195, w: 55, h: 70 },
+        { x: 255, w: 65, h: 85 },
+        { x: 325, w: 50, h: 60 },
+        { x: 380, w: 75, h: 75 },
+        { x: 460, w: 60, h: 65 },
+        { x: 525, w: 75, h: 80 }
       ];
       
       buildings.forEach(building => {
-        // Building body
+        // Simple building shape
         ctx.fillStyle = '#0a0a1a';
         ctx.fillRect(building.x, skylineY + (80 - building.h), building.w, building.h);
         
-        // Windows (some lit, some dark)
-        const windowRows = Math.floor(building.h / 12);
-        const windowCols = Math.floor(building.w / 12);
+        // Simple windows - fewer iterations for performance
+        const windowRows = Math.floor(building.h / 15);
+        const windowCols = Math.floor(building.w / 15);
         
         for (let row = 0; row < windowRows; row++) {
           for (let col = 0; col < windowCols; col++) {
-            const isLit = Math.random() > 0.4;
-            ctx.fillStyle = isLit ? '#FFD700' : '#1a1a2a';
-            const windowX = building.x + 5 + col * 12;
-            const windowY = skylineY + (80 - building.h) + 5 + row * 12;
-            ctx.fillRect(windowX, windowY, 8, 8);
+            // Use deterministic pattern instead of random for consistent rendering
+            const isLit = (row + col + building.x) % 3 !== 0;
+            const windowX = building.x + 5 + col * 15;
+            const windowY = skylineY + (80 - building.h) + 5 + row * 15;
             
-            // Window glow
-            if (isLit) {
-              ctx.shadowColor = '#FFD700';
-              ctx.shadowBlur = 3;
-              ctx.fillRect(windowX, windowY, 8, 8);
-              ctx.shadowBlur = 0;
-            }
+            ctx.fillStyle = isLit ? '#FFD700' : '#1a1a2a';
+            ctx.fillRect(windowX, windowY, 8, 8);
           }
         }
         
-        // Building antenna/spire on some buildings
-        if (building.h > 70) {
-          ctx.strokeStyle = '#333';
-          ctx.lineWidth = 2;
+        // Simple antenna on tall buildings
+        if (building.h > 75 && Math.floor(Date.now() * 0.003) % 2 === 0) {
+          ctx.fillStyle = '#FF0000';
           ctx.beginPath();
-          ctx.moveTo(building.x + building.w / 2, skylineY + (80 - building.h));
-          ctx.lineTo(building.x + building.w / 2, skylineY + (80 - building.h) - 15);
-          ctx.stroke();
-          
-          // Blinking red light on antenna
-          if (Math.floor(Date.now() * 0.002) % 2 === 0) {
-            ctx.fillStyle = '#FF0000';
-            ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur = 5;
-            ctx.beginPath();
-            ctx.arc(building.x + building.w / 2, skylineY + (80 - building.h) - 15, 2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.shadowBlur = 0;
-          }
+          ctx.arc(building.x + building.w / 2, skylineY + (80 - building.h) - 10, 2, 0, Math.PI * 2);
+          ctx.fill();
         }
       });
 
-      // Distant mountains
-      ctx.fillStyle = 'rgba(30, 30, 50, 0.6)';
-      ctx.beginPath();
-      ctx.moveTo(0, GAME_CONFIG.gridHeight - 120);
-      for (let x = 0; x <= GAME_CONFIG.gridWidth; x += 50) {
-        const mountainHeight = Math.sin(x * 0.01) * 40 + 60;
-        ctx.lineTo(x, GAME_CONFIG.gridHeight - mountainHeight);
-      }
-      ctx.lineTo(GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight);
-      ctx.lineTo(0, GAME_CONFIG.gridHeight);
-      ctx.closePath();
-      ctx.fill();
+      // Atmospheric fog/haze at ground level
+      const fogGradient = ctx.createLinearGradient(0, skylineY - 20, 0, GAME_CONFIG.gridHeight);
+      fogGradient.addColorStop(0, 'rgba(107, 71, 137, 0)');
+      fogGradient.addColorStop(0.5, 'rgba(107, 71, 137, 0.2)');
+      fogGradient.addColorStop(1, 'rgba(107, 71, 137, 0.4)');
+      ctx.fillStyle = fogGradient;
+      ctx.fillRect(0, skylineY - 20, GAME_CONFIG.gridWidth, GAME_CONFIG.gridHeight - skylineY + 20);
 
-      // Fireflies/glowing particles
-      ctx.fillStyle = '#FFFF00';
-      for (let i = 0; i < 15; i++) {
-        const flyX = (i * 73 + Date.now() * 0.02) % GAME_CONFIG.gridWidth;
-        const flyY = GAME_CONFIG.gridHeight - 100 + Math.sin(Date.now() * 0.003 + i) * 30;
-        const glow = Math.sin(Date.now() * 0.005 + i) * 0.5 + 0.5;
+      // Simple floating particles - optimized
+      for (let i = 0; i < 10; i++) {
+        const particleX = (i * 73 + time * 0.015) % GAME_CONFIG.gridWidth;
+        const particleY = GAME_CONFIG.gridHeight - 100 + Math.sin(time * 0.002 + i) * 30;
+        const brightness = Math.sin(time * 0.003 + i * 0.5) * 0.4 + 0.6;
         
-        ctx.globalAlpha = glow;
-        ctx.shadowColor = '#FFFF00';
-        ctx.shadowBlur = 8;
+        ctx.fillStyle = `rgba(255, 223, 186, ${brightness})`;
         ctx.beginPath();
-        ctx.arc(flyX, flyY, 2, 0, Math.PI * 2);
+        ctx.arc(particleX, particleY, 2, 0, Math.PI * 2);
         ctx.fill();
       }
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
     } else if (backgroundTheme === 'retro') {
       // SIMPLIFIED RETRO: Synthwave grid with better performance
 

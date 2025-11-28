@@ -15,8 +15,6 @@ export type Snake = {
   length: number;
   width: number;
   color?: string;
-  pattern?: 'normal' | 'spinning';
-  rotation?: number;
 };
 
 export type Player = {
@@ -35,13 +33,14 @@ export type PowerUp = {
 
 export type Obstacle = {
   id: string;
-  type: 'pillar' | 'ghost' | 'fish' | 'eel' | 'shark' | 'coral';
+  type: 'pillar' | 'ghost' | 'fish' | 'eel' | 'shark' | 'coral' | 'rock' | 'spike' | 'bird' | 'cloud';
   position: Position;
   width: number;
   height: number;
   passed?: boolean;
-  floatOffset?: number; // For ghost/fish floating animation
+  floatOffset?: number; // For ghost/fish/bird/cloud floating animation
   swimDirection?: number; // For fish/eel swimming pattern
+  flapPhase?: number; // For bird wing animation
 };
 
 export type BossConfig = {

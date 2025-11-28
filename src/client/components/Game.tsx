@@ -1734,10 +1734,6 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     const colors = ['#228B22', '#8B0000', '#4B0082', '#FF8C00', '#2F4F4F', '#8B4513'];
     const snakeColor = colors[Math.floor(Math.random() * colors.length)] || '#228B22';
 
-    // Adaptive pattern: more coiling snakes for skilled players
-    const coilingChance = 0.3 + profile.skillLevel * 0.3; // 30-60% based on skill
-    const pattern = Math.random() < coilingChance ? 'spinning' : 'normal';
-
     return {
       id: Math.random().toString(36).substring(2, 9),
       position: {
@@ -1746,11 +1742,9 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       },
       direction: { x: -1, y: Math.random() > 0.5 ? 0.5 : -0.5 },
       speed,
-      length: pattern === 'spinning' ? 70 : 45 + Math.random() * 35,
-      width: pattern === 'spinning' ? 14 : 10 + Math.random() * 6,
+      length: 45 + Math.random() * 35,
+      width: 10 + Math.random() * 6,
       color: snakeColor,
-      pattern,
-      rotation: 0,
     };
   }, []);
 
@@ -1761,7 +1755,6 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       const randomType = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
       
       if (randomType === 'coral') {
-        // Coral pillars (like normal pillars but underwater themed)
         return {
           id: Math.random().toString(36).substring(2, 9),
           type: 'coral',
@@ -1799,7 +1792,6 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           swimDirection: 1,
         };
       } else {
-        // Shark
         return {
           id: Math.random().toString(36).substring(2, 9),
           type: 'shark',
@@ -1815,23 +1807,117 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       }
     }
     
-    // HALLOWEEN EVENT - 50% chance to spawn ghost instead of pillar
-    const isGhost = HALLOWEEN_EVENT_ACTIVE && Math.random() < 0.5;
-    
-    if (isGhost) {
+    // HALLOWEEN EVENT - spawn ghost
+    if (HALLOWEEN_EVENT_ACTIVE && Math.random() < 0.5) {
       return {
         id: Math.random().toString(36).substring(2, 9),
         type: 'ghost',
         position: {
           x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
-          y: 80 + Math.random() * (GAME_CONFIG.gridHeight - 160), // Float anywhere in middle
+          y: 80 + Math.random() * (GAME_CONFIG.gridHeight - 160),
         },
         width: 40,
         height: 50,
-        floatOffset: Math.random() * Math.PI * 2, // Random starting phase for floating
+        floatOffset: Math.random() * Math.PI * 2,
       };
     }
     
+    // NORMAL MODE - Theme-based obstacles
+    const obstacleChance = Math.random();
+    
+    if (theme === 'night') {
+      // Night theme: birds and clouds
+      if (obstacleChance < 0.6) {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'bird',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: 60 + Math.random() * (GAME_CONFIG.gridHeight - 180),
+          },
+          width: 35,
+          height: 25,
+          floatOffset: Math.random() * Math.PI * 2,
+          flapPhase: Math.random() * Math.PI * 2,
+        };
+      } else {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'pillar',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: GAME_CONFIG.gridHeight - 60,
+          },
+          width: 20,
+          height: 60,
+        };
+      }
+    } else if (theme === 'beach' || theme === 'desert') {
+      // Beach/Desert theme: rocks and birds
+      if (obstacleChance < 0.4) {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'rock',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: GAME_CONFIG.gridHeight - 50,
+          },
+          width: 40,
+          height: 40,
+        };
+      } else if (obstacleChance < 0.7) {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'bird',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: 60 + Math.random() * (GAME_CONFIG.gridHeight - 180),
+          },
+          width: 35,
+          height: 25,
+          floatOffset: Math.random() * Math.PI * 2,
+          flapPhase: Math.random() * Math.PI * 2,
+        };
+      } else {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'pillar',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: GAME_CONFIG.gridHeight - 60,
+          },
+          width: 20,
+          height: 60,
+        };
+      }
+    } else if (theme === 'retro') {
+      // Retro theme: spikes and pillars
+      if (obstacleChance < 0.5) {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'spike',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: GAME_CONFIG.gridHeight - 45,
+          },
+          width: 30,
+          height: 45,
+        };
+      } else {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'pillar',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: GAME_CONFIG.gridHeight - 60,
+          },
+          width: 20,
+          height: 60,
+        };
+      }
+    }
+    
+    // Default pillar
     return {
       id: Math.random().toString(36).substring(2, 9),
       type: 'pillar',
@@ -2057,14 +2143,30 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       const ghostRadius = obstacle.width / 2;
       
       return distance < (playerRadius + ghostRadius);
-    } else if (obstacle.type === 'fish' || obstacle.type === 'eel' || obstacle.type === 'shark') {
-      // UNDERWATER LEVEL - Fish/eel/shark collision (elliptical)
+    } else if (obstacle.type === 'fish' || obstacle.type === 'eel' || obstacle.type === 'shark' || obstacle.type === 'bird' || obstacle.type === 'cloud') {
+      // Circular collision for floating obstacles
       const dx = playerPos.x - obstacle.position.x;
       const dy = playerPos.y - obstacle.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       const creatureRadius = Math.max(obstacle.width, obstacle.height) / 2;
       
       return distance < (playerRadius + creatureRadius);
+    } else if (obstacle.type === 'rock') {
+      // Rock collision (circular)
+      const dx = playerPos.x - obstacle.position.x;
+      const dy = playerPos.y - obstacle.position.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const rockRadius = obstacle.width / 2;
+      
+      return distance < (playerRadius + rockRadius);
+    } else if (obstacle.type === 'spike') {
+      // Spike collision (triangular)
+      const dx = playerPos.x - obstacle.position.x;
+      const dy = playerPos.y - (obstacle.position.y - obstacle.height / 2);
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const spikeRadius = obstacle.width / 2;
+      
+      return distance < (playerRadius + spikeRadius);
     } else if (obstacle.type === 'coral') {
       // UNDERWATER LEVEL - Coral collision (same as pillar)
       const gapHeight = 100;
@@ -2473,14 +2575,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       newState.snakes = newState.snakes.filter((snake) => {
         const newSnake = { ...snake };
         newSnake.position.x += newSnake.direction.x * newSnake.speed;
-
-        // Spinning snakes move in circular pattern
-        if (newSnake.pattern === 'spinning') {
-          newSnake.rotation = (newSnake.rotation || 0) + 0.1;
-          newSnake.position.y += Math.sin(newSnake.rotation) * 2;
-        } else {
-          newSnake.position.y += newSnake.direction.y * 0.5;
-        }
+        newSnake.position.y += newSnake.direction.y * 0.5;
 
         if (newSnake.position.y <= 0 || newSnake.position.y >= GAME_CONFIG.gridHeight) {
           newSnake.direction.y *= -1;
@@ -2547,13 +2642,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         const newObstacle = { ...obstacle };
         newObstacle.position.x -= 1;
         
-        // HALLOWEEN EVENT - Ghosts float up and down
-        if (newObstacle.type === 'ghost' && newObstacle.floatOffset !== undefined) {
+        // Floating obstacles
+        if ((newObstacle.type === 'ghost' || newObstacle.type === 'bird' || newObstacle.type === 'cloud') && newObstacle.floatOffset !== undefined) {
           newObstacle.floatOffset += 0.05;
-          newObstacle.position.y += Math.sin(newObstacle.floatOffset) * 1.5;
         }
         
-        // UNDERWATER LEVEL - Fish, eels, and sharks swim with wave motion
+        // Swimming obstacles
         if ((newObstacle.type === 'fish' || newObstacle.type === 'eel' || newObstacle.type === 'shark') && 
             newObstacle.floatOffset !== undefined) {
           newObstacle.floatOffset += 0.04;
@@ -4264,7 +4358,6 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       const undulationSpeed = 0.005;
       const undulationAmplitude = 3;
       const baseColor = snake.color || '#228B22';
-      const isSpinning = snake.pattern === 'spinning';
 
       // HALLOWEEN EVENT - Replace snakes with pumpkins and witches
       if (backgroundTheme === 'halloween') {
@@ -4407,8 +4500,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         return; // Skip normal snake rendering
       }
 
-      // Spinning snakes coil in a circle - HIGHLY DETAILED & COLORFUL
-      if (isSpinning) {
+      // Normal slithering snakes
+      if (false) {
         const rotation = snake.rotation || 0;
         const coilRadius = 35; // Even larger for more presence
 
@@ -5075,49 +5168,110 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         const topCoralHeight = gapCenter - gapHeight / 2;
         const bottomCoralHeight = GAME_CONFIG.gridHeight - (gapCenter + gapHeight / 2);
         
-        // Coral gradient
-        const coralGradient = ctx.createLinearGradient(
-          obstacle.position.x - obstacle.width / 2,
-          0,
-          obstacle.position.x + obstacle.width / 2,
-          0
-        );
-        coralGradient.addColorStop(0, '#FF6B6B');
-        coralGradient.addColorStop(0.5, '#FF8787');
-        coralGradient.addColorStop(1, '#FFA5A5');
-        
-        ctx.fillStyle = coralGradient;
-        
-        // Top coral
+        ctx.fillStyle = '#FF6B6B';
         ctx.fillRect(obstacle.position.x - obstacle.width / 2, 0, obstacle.width, topCoralHeight);
-        
-        // Bottom coral
         ctx.fillRect(
           obstacle.position.x - obstacle.width / 2,
           gapCenter + gapHeight / 2,
           obstacle.width,
           bottomCoralHeight
         );
+      } else if (obstacle.type === 'rock') {
+        // Draw rock obstacle
+        const rockX = obstacle.position.x;
+        const rockY = obstacle.position.y;
         
-        // Coral texture (bumpy)
-        ctx.fillStyle = '#FF5252';
-        for (let y = 10; y < topCoralHeight; y += 15) {
-          for (let side = 0; side < 2; side++) {
-            const bumpX = obstacle.position.x + (side === 0 ? -obstacle.width / 2 : obstacle.width / 2);
-            ctx.beginPath();
-            ctx.arc(bumpX, y, 3, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
+        ctx.fillStyle = '#696969';
+        ctx.beginPath();
+        ctx.arc(rockX, rockY, obstacle.width / 2, 0, Math.PI * 2);
+        ctx.fill();
         
-        for (let y = gapCenter + gapHeight / 2 + 10; y < GAME_CONFIG.gridHeight; y += 15) {
-          for (let side = 0; side < 2; side++) {
-            const bumpX = obstacle.position.x + (side === 0 ? -obstacle.width / 2 : obstacle.width / 2);
-            ctx.beginPath();
-            ctx.arc(bumpX, y, 3, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
+        // Rock highlights
+        ctx.fillStyle = '#808080';
+        ctx.beginPath();
+        ctx.arc(rockX - 8, rockY - 8, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Rock shadows
+        ctx.fillStyle = '#505050';
+        ctx.beginPath();
+        ctx.arc(rockX + 6, rockY + 6, 8, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (obstacle.type === 'spike') {
+        // Draw spike obstacle
+        const spikeX = obstacle.position.x;
+        const spikeY = obstacle.position.y;
+        
+        ctx.fillStyle = '#FF00FF';
+        ctx.beginPath();
+        ctx.moveTo(spikeX, spikeY - obstacle.height);
+        ctx.lineTo(spikeX - obstacle.width / 2, spikeY);
+        ctx.lineTo(spikeX + obstacle.width / 2, spikeY);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Spike outline
+        ctx.strokeStyle = '#00FFFF';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      } else if (obstacle.type === 'bird') {
+        // Draw bird obstacle
+        const birdX = obstacle.position.x;
+        const birdY = obstacle.position.y + Math.sin((obstacle.floatOffset || 0) + time * 0.003) * 8;
+        const flapPhase = (obstacle.flapPhase || 0) + time * 0.01;
+        const wingAngle = Math.sin(flapPhase) * 0.5;
+        
+        // Bird body
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath();
+        ctx.ellipse(birdX, birdY, 12, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Wings
+        ctx.fillStyle = '#654321';
+        ctx.save();
+        ctx.translate(birdX, birdY);
+        
+        // Left wing
+        ctx.rotate(wingAngle);
+        ctx.beginPath();
+        ctx.ellipse(-8, 0, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.rotate(-wingAngle);
+        
+        // Right wing
+        ctx.rotate(-wingAngle);
+        ctx.beginPath();
+        ctx.ellipse(8, 0, 10, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
+        
+        // Bird head
+        ctx.fillStyle = '#8B4513';
+        ctx.beginPath();
+        ctx.arc(birdX + 10, birdY - 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Beak
+        ctx.fillStyle = '#FFA500';
+        ctx.beginPath();
+        ctx.moveTo(birdX + 14, birdY - 2);
+        ctx.lineTo(birdX + 18, birdY - 1);
+        ctx.lineTo(birdX + 14, birdY);
+        ctx.closePath();
+        ctx.fill();
+      } else if (obstacle.type === 'cloud') {
+        // Draw cloud obstacle
+        const cloudX = obstacle.position.x;
+        const cloudY = obstacle.position.y + Math.sin((obstacle.floatOffset || 0) + time * 0.002) * 5;
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(cloudX - 10, cloudY, 12, 0, Math.PI * 2);
+        ctx.arc(cloudX, cloudY - 5, 15, 0, Math.PI * 2);
+        ctx.arc(cloudX + 10, cloudY, 12, 0, Math.PI * 2);
+        ctx.fill();
       }
     });
 
@@ -5585,7 +5739,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               Tap the game area or press SPACE/UP arrow to make the chibi jump!
             </p>
             <p className="mb-1">
-              Avoid snakes (watch for coiling ones!) and obstacles. Collect shields for protection!
+              Avoid snakes and obstacles like rocks, spikes, and birds. Collect shields for protection!
             </p>
             <p className="mb-1 text-blue-600 font-semibold">
               🐱 CAT BOSS at 100 pts! 🚀 MISSILE BOSS at 500 pts!

@@ -59,6 +59,11 @@ class ProjectilePool {
 
 // Boss trigger and lifecycle management functions
 const checkBossTrigger = (score: number, defeatedBosses: BossType[], halloweenMode: boolean): BossType | null => {
+  // FINAL BOSS - SERPENT appears at 600 points (both modes)
+  if (score >= 600 && !defeatedBosses.includes('serpent')) {
+    return 'serpent';
+  }
+  
   if (halloweenMode) {
     // Halloween bosses - ONLY octopus and bat
     if (score >= 250 && !defeatedBosses.includes('bat')) {
@@ -179,26 +184,30 @@ const renderOctopusBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
 
 // Octopus Boss update function
 const updateOctopusBoss = (boss: Boss, time: number, playerY: number): Boss => {
-  // Rotate tentacles slowly
+  // Octopus patrols left-right while tracking player vertically
   const newAnimationPhase = boss.animationPhase + 0.02;
+  const t = time * 0.001;
 
-  const t = time * 0.001; // Convert to seconds
+  // Horizontal patrol - smooth sine wave across screen
+  const centerX = GAME_CONFIG.gridWidth / 2;
+  const horizontalRange = 220;
+  const newX = centerX + Math.sin(t * 0.6) * horizontalRange;
 
-  // INDEPENDENT MOVEMENT - Does NOT follow player
-  // Horizontal: Wide oscillation from extreme left to extreme right
-  const centerX = GAME_CONFIG.gridWidth / 2; // Center of screen (300)
-  const horizontalRange = 220; // Move from ~80 to ~520 (almost full screen width)
-  const newX = centerX + Math.sin(t * 0.5) * horizontalRange; // Slow horizontal wave
+  // Vertical tracking - loosely follow player's Y position
+  const currentY = boss.position.y;
+  const targetY = playerY;
+  const verticalSpeed = 1.5;
+  const dy = targetY - currentY;
+  const newY = currentY + Math.sign(dy) * Math.min(Math.abs(dy), verticalSpeed);
 
-  // Vertical: Independent sine wave pattern
-  const centerY = GAME_CONFIG.gridHeight / 2;
-  const verticalRange = 120; // Larger vertical range too
-  const newY = centerY + Math.sin(t * 0.7) * verticalRange; // Different frequency for variety
+  // Keep within bounds
+  const boundedX = Math.max(80, Math.min(GAME_CONFIG.gridWidth - 80, newX));
+  const boundedY = Math.max(80, Math.min(GAME_CONFIG.gridHeight - 80, newY));
 
   return {
     ...boss,
     animationPhase: newAnimationPhase,
-    position: { x: newX, y: newY },
+    position: { x: boundedX, y: boundedY },
   };
 };
 
@@ -384,19 +393,24 @@ const renderBatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
 
 // Bat Boss update function
 const updateBatBoss = (boss: Boss, time: number, playerY: number): Boss => {
-  // INDEPENDENT MOVEMENT - Does NOT follow player
-  // Figure-eight pattern using Lissajous curve
-  const t = time * 0.001; // Convert to seconds
+  // Bat patrols in figure-eight pattern while tracking player vertically
+  const t = time * 0.001;
 
-  // Fixed center position
-  const centerX = GAME_CONFIG.gridWidth / 2; // Center of screen
-  const centerY = GAME_CONFIG.gridHeight / 2;
-  const radiusX = 200; // Wider horizontal movement (100 to 500)
-  const radiusY = 100; // Larger vertical movement
+  // Horizontal figure-eight pattern - keeps moving left-right
+  const centerX = GAME_CONFIG.gridWidth / 2;
+  const radiusX = 200;
+  const newX = centerX + radiusX * Math.sin(t * 0.9);
 
-  // Pure figure-eight pattern - completely independent
-  const newX = centerX + radiusX * Math.sin(t * 0.8);
-  const newY = centerY + radiusY * Math.sin(2 * t * 0.8);
+  // Vertical tracking - follow player's Y position
+  const currentY = boss.position.y;
+  const targetY = playerY;
+  const verticalSpeed = 2.5; // Faster than octopus
+  const dy = targetY - currentY;
+  const newY = currentY + Math.sign(dy) * Math.min(Math.abs(dy), verticalSpeed);
+
+  // Keep within bounds
+  const boundedX = Math.max(80, Math.min(GAME_CONFIG.gridWidth - 80, newX));
+  const boundedY = Math.max(80, Math.min(GAME_CONFIG.gridHeight - 80, newY));
 
   // Update animation phase for wing flapping
   const newAnimationPhase = boss.animationPhase + 0.05;
@@ -404,7 +418,7 @@ const updateBatBoss = (boss: Boss, time: number, playerY: number): Boss => {
   return {
     ...boss,
     animationPhase: newAnimationPhase,
-    position: { x: newX, y: newY },
+    position: { x: boundedX, y: boundedY },
   };
 };
 
@@ -654,42 +668,28 @@ const renderCatBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) 
   ctx.fill();
 };
 
-// Cat Boss update function - CHASES PLAYER!
+// Cat Boss update function - Horizontal patrol with independent vertical movement
 const updateCatBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
-  // Cat actively chases the player with smooth movement
-  const currentX = boss.position.x;
-  const currentY = boss.position.y;
+  const t = time * 0.001;
   
-  // Calculate direction to player
-  const dx = playerPos.x - currentX;
-  const dy = playerPos.y - currentY;
-  const distance = Math.sqrt(dx * dx + dy * dy);
+  // STRONG horizontal patrol - keeps moving left-right
+  const patrolCenterX = GAME_CONFIG.gridWidth / 2;
+  const patrolRange = 220;
+  const newX = patrolCenterX + Math.sin(t * 0.8) * patrolRange;
   
-  // Chase speed - faster than octopus
-  const chaseSpeed = 2.5;
-  
-  // Move toward player
-  let newX = currentX;
-  let newY = currentY;
-  
-  if (distance > 50) { // Keep some distance
-    newX = currentX + (dx / distance) * chaseSpeed;
-    newY = currentY + (dy / distance) * chaseSpeed;
-  } else {
-    // Circle around player when close
-    const angle = Math.atan2(dy, dx) + 0.05;
-    newX = playerPos.x + Math.cos(angle) * 50;
-    newY = playerPos.y + Math.sin(angle) * 50;
-  }
+  // INDEPENDENT vertical movement - sine wave pattern (NOT following player)
+  const verticalCenter = GAME_CONFIG.gridHeight / 2;
+  const verticalRange = 80;
+  const newY = verticalCenter + Math.sin(t * 0.6) * verticalRange;
   
   // Keep within bounds
-  newX = Math.max(50, Math.min(GAME_CONFIG.gridWidth - 50, newX));
-  newY = Math.max(50, Math.min(GAME_CONFIG.gridHeight - 50, newY));
+  const boundedX = Math.max(80, Math.min(GAME_CONFIG.gridWidth - 80, newX));
+  const boundedY = Math.max(80, Math.min(GAME_CONFIG.gridHeight - 80, newY));
 
   return {
     ...boss,
     animationPhase: boss.animationPhase + 0.08,
-    position: { x: newX, y: newY },
+    position: { x: boundedX, y: boundedY },
   };
 };
 
@@ -726,7 +726,7 @@ const catThrowProjectile = (
 // 🚀 MISSILE BOSS (Normal Mode) 🚀
 // ============================================
 
-// Missile Boss rendering function
+// Missile Boss rendering function - SCARY VERSION
 const renderMissileBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
   const config = BOSS_CONFIGS.missile;
   const { x, y } = boss.position;
@@ -736,108 +736,146 @@ const renderMissileBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
     renderDamageNumber(ctx, x, y - 50, time - boss.hitFlashTime);
   }
 
-  // Missile body - metallic gray
-  const bodyGradient = ctx.createLinearGradient(x - 40, y, x + 40, y);
-  bodyGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#34495E');
-  bodyGradient.addColorStop(0.5, isFlashing ? '#FFFFFF' : config.colors.primary);
-  bodyGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#34495E');
-  
-  ctx.fillStyle = bodyGradient;
+  // SCARY AURA - Pulsing danger zone
+  const pulseSize = 60 + Math.sin(time * 0.008) * 15;
+  const dangerGradient = ctx.createRadialGradient(x, y, 20, x, y, pulseSize);
+  dangerGradient.addColorStop(0, 'rgba(255, 0, 0, 0.3)');
+  dangerGradient.addColorStop(0.5, 'rgba(255, 69, 0, 0.2)');
+  dangerGradient.addColorStop(1, 'rgba(255, 0, 0, 0)');
+  ctx.fillStyle = dangerGradient;
   ctx.beginPath();
-  ctx.ellipse(x, y, 45, 20, 0, 0, Math.PI * 2);
+  ctx.arc(x, y, pulseSize, 0, Math.PI * 2);
   ctx.fill();
 
-  // Missile nose cone - red
-  ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.secondary;
-  ctx.beginPath();
-  ctx.moveTo(x + 45, y);
-  ctx.lineTo(x + 60, y - 8);
-  ctx.lineTo(x + 60, y + 8);
-  ctx.closePath();
-  ctx.fill();
-
-  // Fins
-  ctx.fillStyle = isFlashing ? '#FFFFFF' : config.colors.secondary;
-  ctx.beginPath();
-  ctx.moveTo(x - 40, y);
-  ctx.lineTo(x - 50, y - 15);
-  ctx.lineTo(x - 35, y);
-  ctx.closePath();
-  ctx.fill();
-  
-  ctx.beginPath();
-  ctx.moveTo(x - 40, y);
-  ctx.lineTo(x - 50, y + 15);
-  ctx.lineTo(x - 35, y);
-  ctx.closePath();
-  ctx.fill();
-
-  // Engine glow
-  ctx.fillStyle = config.colors.glow;
-  ctx.shadowColor = config.colors.glow;
-  ctx.shadowBlur = 20;
-  ctx.beginPath();
-  ctx.arc(x - 45, y, 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Exhaust trail
-  for (let i = 0; i < 3; i++) {
-    ctx.globalAlpha = 0.3 - i * 0.1;
-    ctx.fillStyle = '#F39C12';
+  // Intense exhaust trail - LONGER and BRIGHTER
+  for (let i = 0; i < 8; i++) {
+    const trailAlpha = 0.6 - i * 0.07;
+    const trailSize = 12 - i * 1.2;
+    ctx.globalAlpha = trailAlpha;
+    
+    // Alternating fire colors for intensity
+    ctx.fillStyle = i % 2 === 0 ? '#FF4500' : '#FFA500';
+    ctx.shadowColor = '#FF4500';
+    ctx.shadowBlur = 15;
     ctx.beginPath();
-    ctx.arc(x - 50 - i * 10, y, 6 - i * 2, 0, Math.PI * 2);
+    ctx.arc(x - 50 - i * 12, y + Math.sin(time * 0.01 + i) * 3, trailSize, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
 
-  // Warning lights
-  const blinkOn = Math.floor(time * 0.005) % 2 === 0;
-  if (blinkOn) {
-    ctx.fillStyle = '#FF0000';
-    ctx.beginPath();
-    ctx.arc(x + 20, y - 10, 3, 0, Math.PI * 2);
-    ctx.arc(x + 20, y + 10, 3, 0, Math.PI * 2);
-    ctx.fill();
+  // Missile body - metallic with menacing glow
+  const bodyGradient = ctx.createLinearGradient(x - 40, y, x + 40, y);
+  bodyGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#2C3E50');
+  bodyGradient.addColorStop(0.5, isFlashing ? '#FFFFFF' : '#34495E');
+  bodyGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#2C3E50');
+  
+  ctx.fillStyle = bodyGradient;
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.ellipse(x, y, 50, 22, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Danger stripes on body
+  ctx.fillStyle = '#FFD700';
+  for (let i = 0; i < 3; i++) {
+    ctx.fillRect(x - 30 + i * 20, y - 18, 8, 36);
   }
+
+  // Sharp nose cone - RED with glow
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : '#E74C3C';
+  ctx.shadowColor = '#E74C3C';
+  ctx.shadowBlur = 15;
+  ctx.beginPath();
+  ctx.moveTo(x + 50, y);
+  ctx.lineTo(x + 70, y - 10);
+  ctx.lineTo(x + 70, y + 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Aggressive fins
+  ctx.fillStyle = isFlashing ? '#FFFFFF' : '#E74C3C';
+  ctx.beginPath();
+  ctx.moveTo(x - 40, y);
+  ctx.lineTo(x - 55, y - 20);
+  ctx.lineTo(x - 35, y);
+  ctx.closePath();
+  ctx.fill();
+  
+  ctx.beginPath();
+  ctx.moveTo(x - 40, y);
+  ctx.lineTo(x - 55, y + 20);
+  ctx.lineTo(x - 35, y);
+  ctx.closePath();
+  ctx.fill();
+
+  // INTENSE engine glow - pulsing
+  const enginePulse = Math.sin(time * 0.015) * 5 + 15;
+  ctx.fillStyle = '#FFA500';
+  ctx.shadowColor = '#FF4500';
+  ctx.shadowBlur = enginePulse + 20;
+  ctx.beginPath();
+  ctx.arc(x - 50, y, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // RAPID warning lights - more menacing
+  const rapidBlink = Math.floor(time * 0.01) % 2 === 0;
+  if (rapidBlink) {
+    ctx.fillStyle = '#FF0000';
+    ctx.shadowColor = '#FF0000';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(x + 25, y - 12, 4, 0, Math.PI * 2);
+    ctx.arc(x + 25, y + 12, 4, 0, Math.PI * 2);
+    ctx.arc(x + 35, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  // Targeting laser effect
+  ctx.strokeStyle = 'rgba(255, 0, 0, 0.4)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath();
+  ctx.moveTo(x + 70, y);
+  ctx.lineTo(x + 150, y);
+  ctx.stroke();
+  ctx.setLineDash([]);
 };
 
 // Missile Boss update function - AGGRESSIVELY CHASES PLAYER!
 const updateMissileBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
-  // Missile aggressively homes in on player
-  const currentX = boss.position.x;
+  // SCARY MISSILE - Fast horizontal sweeps with aggressive tracking
+  const t = time * 0.001;
+  
+  // FAST horizontal sweeping pattern - zigzag across screen
+  const patrolCenterX = GAME_CONFIG.gridWidth / 2;
+  const patrolRange = 250; // Wide sweeps
+  const sweepSpeed = 1.2; // Fast sweeping
+  const newX = patrolCenterX + Math.sin(t * sweepSpeed) * patrolRange;
+  
+  // Aggressive vertical tracking - homes in on player
   const currentY = boss.position.y;
+  const targetY = playerPos.y;
+  const verticalSpeed = 3.5; // Fast vertical tracking
+  const dy = targetY - currentY;
+  const newY = currentY + Math.sign(dy) * Math.min(Math.abs(dy), verticalSpeed);
   
-  // Calculate direction to player
-  const dx = playerPos.x - currentX;
-  const dy = playerPos.y - currentY;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  
-  // Fast homing speed
-  const homingSpeed = 3.0;
-  
-  // Move directly toward player
-  let newX = currentX;
-  let newY = currentY;
-  
-  if (distance > 30) { // Keep minimal distance
-    newX = currentX + (dx / distance) * homingSpeed;
-    newY = currentY + (dy / distance) * homingSpeed;
-  } else {
-    // Orbit around player when very close
-    const angle = Math.atan2(dy, dx) + 0.08;
-    newX = playerPos.x + Math.cos(angle) * 30;
-    newY = playerPos.y + Math.sin(angle) * 30;
-  }
+  // Add erratic wobble for scariness
+  const wobble = Math.sin(t * 3) * 10;
   
   // Keep within bounds
-  newX = Math.max(50, Math.min(GAME_CONFIG.gridWidth - 50, newX));
-  newY = Math.max(50, Math.min(GAME_CONFIG.gridHeight - 50, newY));
+  const boundedX = Math.max(80, Math.min(GAME_CONFIG.gridWidth - 80, newX + wobble));
+  const boundedY = Math.max(80, Math.min(GAME_CONFIG.gridHeight - 80, newY));
 
   return {
     ...boss,
-    animationPhase: boss.animationPhase + 0.12,
-    position: { x: newX, y: newY },
+    animationPhase: boss.animationPhase + 0.15,
+    position: { x: boundedX, y: boundedY },
   };
 };
 
@@ -868,6 +906,261 @@ const missileThrowProjectile = (
   };
 
   return pool.acquire('rocket', boss.position, velocity, config.projectileSize);
+};
+
+// ============================================
+// 🐍 SERPENT BOSS (FINAL BOSS) 🐍
+// ============================================
+
+// Serpent Boss rendering function - TERRIFYING
+const renderSerpentBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: number) => {
+  const config = BOSS_CONFIGS.serpent;
+  const { x, y } = boss.position;
+  const isFlashing = time - boss.hitFlashTime < 200;
+
+  if (isFlashing) {
+    renderDamageNumber(ctx, x, y - 80, time - boss.hitFlashTime);
+  }
+
+  // MASSIVE TERRIFYING AURA - pulsing darkness
+  const auraPulse = 80 + Math.sin(time * 0.006) * 20;
+  const auraGradient = ctx.createRadialGradient(x, y, 30, x, y, auraPulse);
+  auraGradient.addColorStop(0, 'rgba(0, 0, 0, 0.6)');
+  auraGradient.addColorStop(0.5, 'rgba(0, 100, 0, 0.4)');
+  auraGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = auraGradient;
+  ctx.beginPath();
+  ctx.arc(x, y, auraPulse, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Serpent body - MASSIVE coiled segments
+  const segments = 40;
+  const coilRadius = 60;
+  const rotation = boss.animationPhase;
+
+  for (let i = 0; i < segments; i++) {
+    const angle = rotation + (i / segments) * Math.PI * 8;
+    const spiralRadius = coilRadius + Math.sin(i * 0.3) * 10;
+    const segmentX = x + Math.cos(angle) * spiralRadius;
+    const segmentY = y + Math.sin(angle) * spiralRadius;
+    const segmentSize = 25 - i * 0.3;
+
+    // Segment shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.beginPath();
+    ctx.arc(segmentX + 3, segmentY + 3, segmentSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Segment body - black with green glow
+    const segGradient = ctx.createRadialGradient(segmentX - 3, segmentY - 3, 0, segmentX, segmentY, segmentSize / 2);
+    segGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#1a1a1a');
+    segGradient.addColorStop(0.5, isFlashing ? '#FFFFFF' : config.colors.primary);
+    segGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#000000');
+    ctx.fillStyle = segGradient;
+    ctx.beginPath();
+    ctx.arc(segmentX, segmentY, segmentSize / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Toxic green scales
+    if (i % 3 === 0) {
+      ctx.fillStyle = config.colors.secondary;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(segmentX - 4, segmentY - 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Glowing veins
+    if (i % 2 === 0) {
+      ctx.strokeStyle = config.colors.glow;
+      ctx.globalAlpha = 0.4 + Math.sin(time * 0.008 + i) * 0.2;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(segmentX - 5, segmentY);
+      ctx.lineTo(segmentX + 5, segmentY);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // MASSIVE TERRIFYING HEAD
+  const headAngle = rotation + Math.PI * 8;
+  const headX = x + Math.cos(headAngle) * coilRadius;
+  const headY = y + Math.sin(headAngle) * coilRadius;
+
+  // Head glow - toxic green
+  ctx.fillStyle = config.colors.glow;
+  ctx.shadowColor = config.colors.glow;
+  ctx.shadowBlur = 30;
+  ctx.globalAlpha = 0.6;
+  ctx.beginPath();
+  ctx.arc(headX, headY, 35, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+
+  // Head shape - triangular and menacing
+  const headGradient = ctx.createRadialGradient(headX - 5, headY - 5, 0, headX, headY, 30);
+  headGradient.addColorStop(0, isFlashing ? '#FFFFFF' : '#2a2a2a');
+  headGradient.addColorStop(0.5, isFlashing ? '#FFFFFF' : config.colors.primary);
+  headGradient.addColorStop(1, isFlashing ? '#FFFFFF' : '#000000');
+  ctx.fillStyle = headGradient;
+  ctx.beginPath();
+  ctx.moveTo(headX + 30, headY);
+  ctx.lineTo(headX - 15, headY - 20);
+  ctx.lineTo(headX - 15, headY + 20);
+  ctx.closePath();
+  ctx.fill();
+
+  // Jaw line
+  ctx.strokeStyle = config.colors.secondary;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(headX + 30, headY);
+  ctx.lineTo(headX - 10, headY);
+  ctx.stroke();
+
+  // TERRIFYING GLOWING EYES
+  ctx.fillStyle = config.colors.secondary;
+  ctx.shadowColor = config.colors.glow;
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.arc(headX + 5, headY - 8, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(headX + 5, headY + 8, 6, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Slit pupils
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(headX + 3, headY - 10, 4, 4);
+  ctx.fillRect(headX + 3, headY + 6, 4, 4);
+
+  // Eye highlights
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(headX + 7, headY - 9, 2, 0, Math.PI * 2);
+  ctx.arc(headX + 7, headY + 7, 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // VENOMOUS FANGS dripping poison
+  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowColor = config.colors.glow;
+  ctx.shadowBlur = 10;
+  ctx.beginPath();
+  ctx.moveTo(headX + 20, headY - 5);
+  ctx.lineTo(headX + 28, headY - 2);
+  ctx.lineTo(headX + 22, headY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(headX + 20, headY + 5);
+  ctx.lineTo(headX + 28, headY + 2);
+  ctx.lineTo(headX + 22, headY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Dripping venom
+  const venomDrip = Math.sin(time * 0.01) * 5;
+  ctx.fillStyle = config.colors.glow;
+  ctx.globalAlpha = 0.8;
+  ctx.beginPath();
+  ctx.arc(headX + 28, headY - 2 + venomDrip, 2, 0, Math.PI * 2);
+  ctx.arc(headX + 28, headY + 2 + venomDrip, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // Forked tongue - animated
+  const tongueExtend = Math.sin(time * 0.015) * 8 + 12;
+  ctx.strokeStyle = '#FF1493';
+  ctx.shadowColor = '#FF1493';
+  ctx.shadowBlur = 8;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(headX + 30, headY);
+  ctx.lineTo(headX + 30 + tongueExtend, headY - 4);
+  ctx.moveTo(headX + 30, headY);
+  ctx.lineTo(headX + 30 + tongueExtend, headY + 4);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // Toxic smoke/mist around serpent
+  for (let i = 0; i < 5; i++) {
+    const smokeAngle = (i / 5) * Math.PI * 2 + time * 0.002;
+    const smokeRadius = 70 + Math.sin(time * 0.003 + i) * 10;
+    const smokeX = x + Math.cos(smokeAngle) * smokeRadius;
+    const smokeY = y + Math.sin(smokeAngle) * smokeRadius;
+    const smokeAlpha = 0.2 + Math.sin(time * 0.004 + i) * 0.1;
+    
+    ctx.fillStyle = `rgba(0, 255, 20, ${smokeAlpha})`;
+    ctx.beginPath();
+    ctx.arc(smokeX, smokeY, 8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+};
+
+// Serpent Boss update function - menacing patrol
+const updateSerpentBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
+  // Serpent does wide menacing sweeps while tracking player
+  const t = time * 0.001;
+  
+  // Wide horizontal sweeping pattern
+  const patrolCenterX = GAME_CONFIG.gridWidth / 2;
+  const patrolRange = 230;
+  const newX = patrolCenterX + Math.sin(t * 0.5) * patrolRange;
+  
+  // Aggressive vertical tracking
+  const currentY = boss.position.y;
+  const targetY = playerPos.y;
+  const verticalSpeed = 2.8;
+  const dy = targetY - currentY;
+  const newY = currentY + Math.sign(dy) * Math.min(Math.abs(dy), verticalSpeed);
+  
+  // Keep within bounds
+  const boundedX = Math.max(100, Math.min(GAME_CONFIG.gridWidth - 100, newX));
+  const boundedY = Math.max(100, Math.min(GAME_CONFIG.gridHeight - 100, newY));
+
+  return {
+    ...boss,
+    animationPhase: boss.animationPhase + 0.03,
+    position: { x: boundedX, y: boundedY },
+  };
+};
+
+// Serpent Boss projectile throwing - poison spit
+const serpentThrowProjectile = (
+  boss: Boss,
+  playerPos: Position,
+  pool: ProjectilePool,
+  skillLevel: number
+): Projectile | null => {
+  const config = BOSS_CONFIGS.serpent;
+  const interval = skillLevel < 0.3 ? 900 : config.projectileInterval;
+
+  const now = Date.now();
+  if (now - boss.lastProjectileTime < interval) {
+    return null;
+  }
+
+  boss.lastProjectileTime = now;
+
+  // Poison spit toward player
+  const dx = playerPos.x - boss.position.x;
+  const dy = playerPos.y - boss.position.y;
+  const distance = Math.sqrt(dx * dx + dy * dy);
+  const velocity = {
+    x: (dx / distance) * config.projectileSpeed,
+    y: (dy / distance) * config.projectileSpeed,
+  };
+
+  return pool.acquire('inkBlob', boss.position, velocity, config.projectileSize);
 };
 
 // Projectile rendering functions
@@ -1094,6 +1387,7 @@ const checkBossCollision = (playerPos: Position, boss: Boss): boolean => {
   else if (boss.type === 'cat') radius = 35;
   else if (boss.type === 'missile') radius = 45;
   else if (boss.type === 'bat') radius = 50;
+  else if (boss.type === 'serpent') radius = 70;
   
   const dx = playerPos.x - boss.position.x;
   const dy = playerPos.y - boss.position.y;
@@ -1568,6 +1862,8 @@ const renderBossEntrance = (ctx: CanvasRenderingContext2D, boss: Boss, elapsedTi
       renderCatBoss(ctx, tempBoss, Date.now());
     } else if (boss.type === 'missile') {
       renderMissileBoss(ctx, tempBoss, Date.now());
+    } else if (boss.type === 'serpent') {
+      renderSerpentBoss(ctx, tempBoss, Date.now());
     }
   }
 };
@@ -1593,6 +1889,8 @@ const renderVictoryAnimation = (ctx: CanvasRenderingContext2D, boss: Boss, elaps
     renderCatBoss(ctx, boss, Date.now());
   } else if (boss.type === 'missile') {
     renderMissileBoss(ctx, boss, Date.now());
+  } else if (boss.type === 'serpent') {
+    renderSerpentBoss(ctx, boss, Date.now());
   }
 
   ctx.restore();
@@ -1826,8 +2124,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     const obstacleChance = Math.random();
     
     if (theme === 'night') {
-      // Night theme: birds and clouds
-      if (obstacleChance < 0.6) {
+      // Night theme: birds and lightning bolts
+      if (obstacleChance < 0.4) {
         return {
           id: Math.random().toString(36).substring(2, 9),
           type: 'bird',
@@ -1839,6 +2137,18 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           height: 25,
           floatOffset: Math.random() * Math.PI * 2,
           flapPhase: Math.random() * Math.PI * 2,
+        };
+      } else if (obstacleChance < 0.7) {
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          type: 'lightning',
+          position: {
+            x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
+            y: 0,
+          },
+          width: 15,
+          height: GAME_CONFIG.gridHeight,
+          floatOffset: Math.random() * Math.PI * 2,
         };
       } else {
         return {
@@ -1853,17 +2163,19 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         };
       }
     } else if (theme === 'beach' || theme === 'desert') {
-      // Beach/Desert theme: rocks and birds
+      // Beach/Desert theme: crabs and birds
       if (obstacleChance < 0.4) {
         return {
           id: Math.random().toString(36).substring(2, 9),
-          type: 'rock',
+          type: 'crab',
           position: {
             x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
-            y: GAME_CONFIG.gridHeight - 50,
+            y: GAME_CONFIG.gridHeight - 40,
           },
           width: 40,
-          height: 40,
+          height: 30,
+          swimDirection: Math.random() > 0.5 ? 1 : -1,
+          legPhase: Math.random() * Math.PI * 2,
         };
       } else if (obstacleChance < 0.7) {
         return {
@@ -1891,17 +2203,19 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         };
       }
     } else if (theme === 'retro') {
-      // Retro theme: spikes and pillars
+      // Retro theme: spiders and pillars
       if (obstacleChance < 0.5) {
         return {
           id: Math.random().toString(36).substring(2, 9),
-          type: 'spike',
+          type: 'spider',
           position: {
             x: GAME_CONFIG.gridWidth + Math.random() * 200 + 100,
-            y: GAME_CONFIG.gridHeight - 45,
+            y: 50 + Math.random() * (GAME_CONFIG.gridHeight - 150),
           },
-          width: 30,
-          height: 45,
+          width: 35,
+          height: 35,
+          floatOffset: Math.random() * Math.PI * 2,
+          legPhase: Math.random() * Math.PI * 2,
         };
       } else {
         return {
@@ -2143,30 +2457,20 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       const ghostRadius = obstacle.width / 2;
       
       return distance < (playerRadius + ghostRadius);
-    } else if (obstacle.type === 'fish' || obstacle.type === 'eel' || obstacle.type === 'shark' || obstacle.type === 'bird' || obstacle.type === 'cloud') {
-      // Circular collision for floating obstacles
+    } else if (obstacle.type === 'fish' || obstacle.type === 'eel' || obstacle.type === 'shark' || obstacle.type === 'bird' || obstacle.type === 'crab' || obstacle.type === 'spider') {
+      // Circular collision for creatures
       const dx = playerPos.x - obstacle.position.x;
       const dy = playerPos.y - obstacle.position.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       const creatureRadius = Math.max(obstacle.width, obstacle.height) / 2;
       
       return distance < (playerRadius + creatureRadius);
-    } else if (obstacle.type === 'rock') {
-      // Rock collision (circular)
-      const dx = playerPos.x - obstacle.position.x;
-      const dy = playerPos.y - obstacle.position.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const rockRadius = obstacle.width / 2;
+    } else if (obstacle.type === 'lightning') {
+      // Lightning bolt collision (vertical line)
+      const boltLeft = obstacle.position.x - obstacle.width / 2;
+      const boltRight = obstacle.position.x + obstacle.width / 2;
       
-      return distance < (playerRadius + rockRadius);
-    } else if (obstacle.type === 'spike') {
-      // Spike collision (triangular)
-      const dx = playerPos.x - obstacle.position.x;
-      const dy = playerPos.y - (obstacle.position.y - obstacle.height / 2);
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      const spikeRadius = obstacle.width / 2;
-      
-      return distance < (playerRadius + spikeRadius);
+      return playerPos.x + playerRadius > boltLeft && playerPos.x - playerRadius < boltRight;
     } else if (obstacle.type === 'coral') {
       // UNDERWATER LEVEL - Coral collision (same as pillar)
       const gapHeight = 100;
@@ -2282,6 +2586,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             updatedBoss = updateCatBoss(boss, newState.player.position, Date.now());
           } else if (boss.type === 'missile') {
             updatedBoss = updateMissileBoss(boss, newState.player.position, Date.now());
+          } else if (boss.type === 'serpent') {
+            updatedBoss = updateSerpentBoss(boss, newState.player.position, Date.now());
           } else {
             updatedBoss = boss;
           }
@@ -2331,6 +2637,29 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
             if (projectile) {
               newState.bossState.projectiles.push(projectile);
               playProjectileThrowSound();
+            }
+          } else if (updatedBoss.type === 'serpent') {
+            const projectile = serpentThrowProjectile(
+              updatedBoss,
+              newState.player.position,
+              projectilePoolRef.current,
+              playerProfile.skillLevel
+            );
+            if (projectile) {
+              newState.bossState.projectiles.push(projectile);
+              playProjectileThrowSound();
+            }
+            
+            // SERPENT BOSS - Spawn small snakes periodically
+            const timeSinceLastSpawn = Date.now() - (updatedBoss.lastProjectileTime - 600);
+            if (timeSinceLastSpawn > 3000 && newState.snakes.length < 3) {
+              const smallSnake = generateSnake(newState.level, playerProfile);
+              smallSnake.position.x = GAME_CONFIG.gridWidth + 100;
+              smallSnake.position.y = Math.random() * (GAME_CONFIG.gridHeight - 100) + 50;
+              smallSnake.length = 30; // Smaller snakes
+              smallSnake.width = 8;
+              newState.snakes.push(smallSnake);
+              console.log('🐍 Serpent spawned a small snake!');
             }
           }
 
@@ -2643,12 +2972,12 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         newObstacle.position.x -= 1;
         
         // Floating obstacles
-        if ((newObstacle.type === 'ghost' || newObstacle.type === 'bird' || newObstacle.type === 'cloud') && newObstacle.floatOffset !== undefined) {
+        if ((newObstacle.type === 'ghost' || newObstacle.type === 'bird' || newObstacle.type === 'spider') && newObstacle.floatOffset !== undefined) {
           newObstacle.floatOffset += 0.05;
         }
         
-        // Swimming obstacles
-        if ((newObstacle.type === 'fish' || newObstacle.type === 'eel' || newObstacle.type === 'shark') && 
+        // Swimming/crawling obstacles
+        if ((newObstacle.type === 'fish' || newObstacle.type === 'eel' || newObstacle.type === 'shark' || newObstacle.type === 'crab') && 
             newObstacle.floatOffset !== undefined) {
           newObstacle.floatOffset += 0.04;
           newObstacle.position.y += Math.sin(newObstacle.floatOffset) * 2;
@@ -5176,46 +5505,102 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           obstacle.width,
           bottomCoralHeight
         );
-      } else if (obstacle.type === 'rock') {
-        // Draw rock obstacle
-        const rockX = obstacle.position.x;
-        const rockY = obstacle.position.y;
+      } else if (obstacle.type === 'crab') {
+        // Draw crab obstacle
+        const crabX = obstacle.position.x;
+        const crabY = obstacle.position.y;
+        const legPhase = (obstacle.legPhase || 0) + time * 0.008;
         
-        ctx.fillStyle = '#696969';
+        // Crab body
+        ctx.fillStyle = '#FF6347';
         ctx.beginPath();
-        ctx.arc(rockX, rockY, obstacle.width / 2, 0, Math.PI * 2);
+        ctx.ellipse(crabX, crabY, 20, 15, 0, 0, Math.PI * 2);
         ctx.fill();
         
-        // Rock highlights
-        ctx.fillStyle = '#808080';
+        // Crab legs (4 on each side)
+        ctx.strokeStyle = '#FF4500';
+        ctx.lineWidth = 3;
+        for (let i = 0; i < 4; i++) {
+          const legOffset = Math.sin(legPhase + i * 0.5) * 3;
+          // Left legs
+          ctx.beginPath();
+          ctx.moveTo(crabX - 15, crabY - 5 + i * 5);
+          ctx.lineTo(crabX - 25, crabY + legOffset + i * 3);
+          ctx.stroke();
+          // Right legs
+          ctx.beginPath();
+          ctx.moveTo(crabX + 15, crabY - 5 + i * 5);
+          ctx.lineTo(crabX + 25, crabY + legOffset + i * 3);
+          ctx.stroke();
+        }
+        
+        // Crab claws
+        ctx.fillStyle = '#FF4500';
         ctx.beginPath();
-        ctx.arc(rockX - 8, rockY - 8, 6, 0, Math.PI * 2);
+        ctx.arc(crabX - 22, crabY - 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(crabX + 22, crabY - 10, 5, 0, Math.PI * 2);
         ctx.fill();
         
-        // Rock shadows
-        ctx.fillStyle = '#505050';
+        // Eyes
+        ctx.fillStyle = '#000000';
         ctx.beginPath();
-        ctx.arc(rockX + 6, rockY + 6, 8, 0, Math.PI * 2);
+        ctx.arc(crabX - 8, crabY - 8, 2, 0, Math.PI * 2);
+        ctx.arc(crabX + 8, crabY - 8, 2, 0, Math.PI * 2);
         ctx.fill();
-      } else if (obstacle.type === 'spike') {
-        // Draw spike obstacle
-        const spikeX = obstacle.position.x;
-        const spikeY = obstacle.position.y;
+      } else if (obstacle.type === 'spider') {
+        // Draw spider obstacle
+        const spiderX = obstacle.position.x;
+        const spiderY = obstacle.position.y + Math.sin((obstacle.floatOffset || 0) + time * 0.004) * 10;
+        const legPhase = (obstacle.legPhase || 0) + time * 0.01;
         
-        ctx.fillStyle = '#FF00FF';
+        // Spider body
+        ctx.fillStyle = '#8B008B';
         ctx.beginPath();
-        ctx.moveTo(spikeX, spikeY - obstacle.height);
-        ctx.lineTo(spikeX - obstacle.width / 2, spikeY);
-        ctx.lineTo(spikeX + obstacle.width / 2, spikeY);
-        ctx.closePath();
+        ctx.arc(spiderX, spiderY, 12, 0, Math.PI * 2);
         ctx.fill();
         
-        // Spike outline
-        ctx.strokeStyle = '#00FFFF';
+        // Spider head
+        ctx.fillStyle = '#9932CC';
+        ctx.beginPath();
+        ctx.arc(spiderX, spiderY - 10, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Spider legs (4 on each side)
+        ctx.strokeStyle = '#8B008B';
         ctx.lineWidth = 2;
+        for (let i = 0; i < 4; i++) {
+          const legAngle = (i / 4) * Math.PI - Math.PI / 2;
+          const legWave = Math.sin(legPhase + i * 0.8) * 5;
+          // Left legs
+          ctx.beginPath();
+          ctx.moveTo(spiderX - 10, spiderY);
+          ctx.lineTo(spiderX - 25 + legWave, spiderY + Math.sin(legAngle) * 15);
+          ctx.stroke();
+          // Right legs
+          ctx.beginPath();
+          ctx.moveTo(spiderX + 10, spiderY);
+          ctx.lineTo(spiderX + 25 + legWave, spiderY + Math.sin(legAngle) * 15);
+          ctx.stroke();
+        }
+        
+        // Eyes
+        ctx.fillStyle = '#FF0000';
+        ctx.beginPath();
+        ctx.arc(spiderX - 3, spiderY - 12, 2, 0, Math.PI * 2);
+        ctx.arc(spiderX + 3, spiderY - 12, 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Web thread
+        ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(spiderX, spiderY - 20);
+        ctx.lineTo(spiderX, 0);
         ctx.stroke();
       } else if (obstacle.type === 'bird') {
-        // Draw bird obstacle
+        // Draw bird obstacle - appears regularly like snakes
         const birdX = obstacle.position.x;
         const birdY = obstacle.position.y + Math.sin((obstacle.floatOffset || 0) + time * 0.003) * 8;
         const flapPhase = (obstacle.flapPhase || 0) + time * 0.01;
@@ -5261,17 +5646,36 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
         ctx.lineTo(birdX + 14, birdY);
         ctx.closePath();
         ctx.fill();
-      } else if (obstacle.type === 'cloud') {
-        // Draw cloud obstacle
-        const cloudX = obstacle.position.x;
-        const cloudY = obstacle.position.y + Math.sin((obstacle.floatOffset || 0) + time * 0.002) * 5;
+      } else if (obstacle.type === 'lightning') {
+        // Draw lightning bolt obstacle
+        const boltX = obstacle.position.x;
+        const flashPhase = Math.sin((obstacle.floatOffset || 0) + time * 0.01);
+        const opacity = 0.7 + flashPhase * 0.3;
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        // Lightning bolt glow
+        ctx.strokeStyle = `rgba(255, 255, 0, ${opacity * 0.5})`;
+        ctx.lineWidth = 20;
+        ctx.shadowColor = '#FFFF00';
+        ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.arc(cloudX - 10, cloudY, 12, 0, Math.PI * 2);
-        ctx.arc(cloudX, cloudY - 5, 15, 0, Math.PI * 2);
-        ctx.arc(cloudX + 10, cloudY, 12, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(boltX, 0);
+        ctx.lineTo(boltX - 10, GAME_CONFIG.gridHeight * 0.3);
+        ctx.lineTo(boltX + 5, GAME_CONFIG.gridHeight * 0.5);
+        ctx.lineTo(boltX - 8, GAME_CONFIG.gridHeight * 0.7);
+        ctx.lineTo(boltX, GAME_CONFIG.gridHeight);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+        
+        // Lightning bolt core
+        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(boltX, 0);
+        ctx.lineTo(boltX - 10, GAME_CONFIG.gridHeight * 0.3);
+        ctx.lineTo(boltX + 5, GAME_CONFIG.gridHeight * 0.5);
+        ctx.lineTo(boltX - 8, GAME_CONFIG.gridHeight * 0.7);
+        ctx.lineTo(boltX, GAME_CONFIG.gridHeight);
+        ctx.stroke();
       }
     });
 
@@ -5292,6 +5696,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
           renderCatBoss(ctx, boss, Date.now());
         } else if (boss.type === 'missile') {
           renderMissileBoss(ctx, boss, Date.now());
+        } else if (boss.type === 'serpent') {
+          renderSerpentBoss(ctx, boss, Date.now());
         }
 
         // Render boss health bar
@@ -5739,7 +6145,7 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
               Tap the game area or press SPACE/UP arrow to make the chibi jump!
             </p>
             <p className="mb-1">
-              Avoid snakes and obstacles like rocks, spikes, and birds. Collect shields for protection!
+              Avoid snakes and obstacles like crabs, spiders, birds, and lightning! Collect shields for protection!
             </p>
             <p className="mb-1 text-blue-600 font-semibold">
               🐱 CAT BOSS at 100 pts! 🚀 MISSILE BOSS at 500 pts!

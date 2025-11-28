@@ -1,6 +1,6 @@
 export type GameLevel = 'easy' | 'medium' | 'hard';
 
-export type BossType = 'octopus' | 'bat' | 'cat' | 'missile';
+export type BossType = 'octopus' | 'bat' | 'cat' | 'missile' | 'serpent';
 
 export type Position = {
   x: number;
@@ -33,14 +33,15 @@ export type PowerUp = {
 
 export type Obstacle = {
   id: string;
-  type: 'pillar' | 'ghost' | 'fish' | 'eel' | 'shark' | 'coral' | 'rock' | 'spike' | 'bird' | 'cloud';
+  type: 'pillar' | 'ghost' | 'fish' | 'eel' | 'shark' | 'coral' | 'crab' | 'spider' | 'bird' | 'lightning';
   position: Position;
   width: number;
   height: number;
   passed?: boolean;
-  floatOffset?: number; // For ghost/fish/bird/cloud floating animation
-  swimDirection?: number; // For fish/eel swimming pattern
+  floatOffset?: number; // For ghost/fish/bird floating animation
+  swimDirection?: number; // For fish/eel/crab swimming pattern
   flapPhase?: number; // For bird wing animation
+  legPhase?: number; // For spider/crab leg animation
 };
 
 export type BossConfig = {
@@ -172,13 +173,29 @@ export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
     health: 15,
     position: { x: 300, y: 200 },
     size: { width: 90, height: 50 },
-    projectileInterval: 1000,
-    projectileSpeed: 4,
-    projectileSize: 14,
+    projectileInterval: 800,
+    projectileSpeed: 5.5,
+    projectileSize: 16,
     colors: {
       primary: '#2C3E50',
       secondary: '#E74C3C',
       glow: '#F39C12',
+    },
+  },
+  // FINAL BOSS - TERRIFYING SERPENT
+  serpent: {
+    type: 'serpent',
+    triggerScore: 600,
+    health: 25,
+    position: { x: 400, y: 300 },
+    size: { width: 150, height: 100 },
+    projectileInterval: 600,
+    projectileSpeed: 4.5,
+    projectileSize: 18,
+    colors: {
+      primary: '#0D0D0D',
+      secondary: '#00FF00',
+      glow: '#39FF14',
     },
   },
 };

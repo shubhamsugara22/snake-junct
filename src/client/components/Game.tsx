@@ -851,23 +851,23 @@ const renderMissileBoss = (ctx: CanvasRenderingContext2D, boss: Boss, time: numb
 const updateMissileBoss = (boss: Boss, playerPos: Position, time: number): Boss => {
   const t = time * 0.001;
   
-  // VERY FAST horizontal sweeping - keeps moving left-right aggressively
+  // VERY FAST horizontal sweeping - full left-right movement
   const patrolCenterX = GAME_CONFIG.gridWidth / 2;
-  const patrolRange = 260;
-  const sweepSpeed = 1.4; // Very fast
-  const newX = patrolCenterX + Math.sin(t * sweepSpeed) * patrolRange;
+  const patrolRange = 240; // Wide range for full screen coverage
+  const sweepSpeed = 1.0; // Smooth fast speed
+  const horizontalPos = patrolCenterX + Math.sin(t * sweepSpeed) * patrolRange;
   
-  // INDEPENDENT vertical movement - figure-eight pattern (NOT following player)
+  // INDEPENDENT vertical movement - smooth wave pattern
   const verticalCenter = GAME_CONFIG.gridHeight / 2;
-  const verticalRange = 100;
-  const newY = verticalCenter + Math.sin(t * 1.8) * verticalRange;
+  const verticalRange = 90;
+  const verticalPos = verticalCenter + Math.sin(t * 0.7) * verticalRange;
   
-  // Add erratic wobble for scariness
-  const wobble = Math.sin(t * 4) * 12;
+  // Add small erratic wobble for scariness (not too much)
+  const wobble = Math.sin(t * 5) * 8;
   
   // Keep within bounds
-  const boundedX = Math.max(80, Math.min(GAME_CONFIG.gridWidth - 80, newX + wobble));
-  const boundedY = Math.max(80, Math.min(GAME_CONFIG.gridHeight - 80, newY));
+  const boundedX = Math.max(100, Math.min(GAME_CONFIG.gridWidth - 100, horizontalPos + wobble));
+  const boundedY = Math.max(100, Math.min(GAME_CONFIG.gridHeight - 100, verticalPos));
 
   return {
     ...boss,

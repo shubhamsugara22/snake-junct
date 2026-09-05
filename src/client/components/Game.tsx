@@ -1961,8 +1961,9 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       position: { x: 150, y: GAME_CONFIG.gridHeight / 2 },
       velocity: 0,
       isAlive: true,
-      skin: 'orange',
+      skin: 'spaceship',
     },
+    playerProjectiles: [],
     snakes: [],
     obstacles: [],
     powerUps: [],
@@ -1974,6 +1975,8 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
     shieldEndTime: 0,
     fireActive: false,
     fireEndTime: 0,
+    doubleLaserActive: false,
+    doubleLaserEndTime: 0,
     bossState: {
       currentBoss: null,
       bossEncounterActive: false,
@@ -4286,8 +4289,43 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.globalAlpha = 1;
     }
 
-    // Draw super cute chibi character with enhanced animations
-
+    // Draw spaceship or chibi
+    if (selectedSkin === 'spaceship' || backgroundTheme === 'space') {
+      ctx.save();
+      ctx.translate(playerX, playerY + Math.sin(Date.now() * 0.01) * 0.5);
+      const exhaustLength = 10 + Math.random() * 10;
+      ctx.fillStyle = '#00FFFF';
+      ctx.beginPath();
+      ctx.moveTo(-playerRadius, -5);
+      ctx.lineTo(-playerRadius - exhaustLength, 0);
+      ctx.lineTo(-playerRadius, 5);
+      ctx.fill();
+      ctx.fillStyle = '#E0E0E0';
+      ctx.beginPath();
+      ctx.moveTo(playerRadius, 0);
+      ctx.lineTo(-playerRadius, -playerRadius * 0.8);
+      ctx.lineTo(-playerRadius, playerRadius * 0.8);
+      ctx.fill();
+      ctx.fillStyle = '#87CEEB';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, playerRadius * 0.5, playerRadius * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#A9A9A9';
+      ctx.beginPath();
+      ctx.moveTo(-playerRadius * 0.5, -playerRadius * 0.8);
+      ctx.lineTo(-playerRadius, -playerRadius * 1.5);
+      ctx.lineTo(-playerRadius * 0.2, -playerRadius * 0.5);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-playerRadius * 0.5, playerRadius * 0.8);
+      ctx.lineTo(-playerRadius, playerRadius * 1.5);
+      ctx.lineTo(-playerRadius * 0.2, playerRadius * 0.5);
+      ctx.fill();
+      ctx.fillStyle = '#FF4500';
+      ctx.fillRect(0, -playerRadius * 0.9, playerRadius * 0.8, 3);
+      ctx.fillRect(0, playerRadius * 0.9 - 3, playerRadius * 0.8, 3);
+      ctx.restore();
+    } else {
     // Animation: Squash and stretch based on velocity
     const velocityFactor = Math.abs(gameState.player.velocity) / 10;
     const squashAmount = Math.min(velocityFactor * 0.15, 0.3);
@@ -4677,6 +4715,10 @@ export const Game = ({ username, onScoreUpdate }: GameProps) => {
       ctx.fill();
     }
 
+      if (ctx.restore) { try { ctx.restore(); } catch(e) {} }
+    }
+      if (ctx.restore) { try { ctx.restore(); } catch(e) {} }
+    }
     // Draw snakes (or Halloween creatures)
     gameState.snakes.forEach((snake, snakeIndex) => {
       const segments = Math.floor(snake.length / 6);

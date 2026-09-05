@@ -1,6 +1,6 @@
 export type GameLevel = 'easy' | 'medium' | 'hard';
 
-export type BossType = 'octopus' | 'bat' | 'cat' | 'missile' | 'serpent';
+export type BossType = 'alien_cruiser' | 'asteroid_swarm' | 'mothership' | 'laser_satellite' | 'void_serpent';
 
 export type Position = {
   x: number;
@@ -22,26 +22,27 @@ export type Player = {
   velocity: number;
   isAlive: boolean;
   skin?: string;
+  lastFireTime?: number;
 };
 
 export type PowerUp = {
   id: string;
-  type: 'shield' | 'fire' | 'candy';
+  type: 'shield' | 'fire' | 'candy' | 'double_laser';
   position: Position;
   collected: boolean;
 };
 
 export type Obstacle = {
   id: string;
-  type: 'pillar' | 'ghost' | 'fish' | 'eel' | 'shark' | 'coral' | 'crab' | 'spider' | 'bird' | 'lightning';
+  type: 'asteroid' | 'mine' | 'debris' | 'enemy_ship';
   position: Position;
   width: number;
   height: number;
   passed?: boolean;
-  floatOffset?: number; // For ghost/fish/bird floating animation
-  swimDirection?: number; // For fish/eel/crab swimming pattern
-  flapPhase?: number; // For bird wing animation
-  legPhase?: number; // For spider/crab leg animation
+  floatOffset?: number; 
+  swimDirection?: number; 
+  flapPhase?: number; 
+  legPhase?: number; 
 };
 
 export type BossConfig = {
@@ -74,11 +75,20 @@ export type Boss = {
 
 export type Projectile = {
   id: string;
-  type: 'inkBlob' | 'pumpkin' | 'fireball' | 'rocket';
+  type: 'alien_laser' | 'asteroid_chunk' | 'plasma_ball' | 'missile';
   position: Position;
   velocity: Position;
   size: number;
   active: boolean;
+};
+
+export type PlayerProjectile = {
+  id: string;
+  position: Position;
+  velocity: Position;
+  size: number;
+  active: boolean;
+  damage: number;
 };
 
 export type BossState = {
@@ -92,6 +102,7 @@ export type BossState = {
 
 export type GameState = {
   player: Player;
+  playerProjectiles: PlayerProjectile[];
   snakes: Snake[];
   obstacles: Obstacle[];
   powerUps: PowerUp[];
@@ -103,6 +114,8 @@ export type GameState = {
   shieldEndTime: number;
   fireActive: boolean;
   fireEndTime: number;
+  doubleLaserActive: boolean;
+  doubleLaserEndTime: number;
   bossState: BossState;
 };
 
@@ -120,9 +133,8 @@ export type GameConfig = {
 
 // Boss Configurations
 export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
-  // Halloween Bosses
-  octopus: {
-    type: 'octopus',
+  alien_cruiser: {
+    type: 'alien_cruiser',
     triggerScore: 100,
     health: 10,
     position: { x: 500, y: 200 },
@@ -136,8 +148,8 @@ export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
       glow: '#00FFFF',
     },
   },
-  bat: {
-    type: 'bat',
+  asteroid_swarm: {
+    type: 'asteroid_swarm',
     triggerScore: 250,
     health: 15,
     position: { x: 300, y: 100 },
@@ -146,14 +158,13 @@ export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
     projectileSpeed: 2.5,
     projectileSize: 12,
     colors: {
-      primary: '#000000',
-      secondary: '#FF0000',
-      glow: '#FF0000',
+      primary: '#696969',
+      secondary: '#A9A9A9',
+      glow: '#FF4500',
     },
   },
-  // Normal Mode Bosses
-  cat: {
-    type: 'cat',
+  mothership: {
+    type: 'mothership',
     triggerScore: 100,
     health: 10,
     position: { x: 150, y: 200 },
@@ -167,8 +178,8 @@ export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
       glow: '#FFD700',
     },
   },
-  missile: {
-    type: 'missile',
+  laser_satellite: {
+    type: 'laser_satellite',
     triggerScore: 250,
     health: 15,
     position: { x: 100, y: 200 },
@@ -182,9 +193,8 @@ export const BOSS_CONFIGS: Record<BossType, BossConfig> = {
       glow: '#F39C12',
     },
   },
-  // FINAL BOSS - TERRIFYING SERPENT
-  serpent: {
-    type: 'serpent',
+  void_serpent: {
+    type: 'void_serpent',
     triggerScore: 600,
     health: 25,
     position: { x: 400, y: 300 },
